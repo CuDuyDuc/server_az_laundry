@@ -3,6 +3,7 @@ const bcryp = require('bcryptjs');
 const asyncHandle = require('express-async-handler');
 const jwt = require('jsonwebtoken');
 const nodemailer = require('nodemailer');
+const RoleModel = require("../models/role_model");
 
 
 const transporter = nodemailer.createTransport({
@@ -66,9 +67,14 @@ const verification = asyncHandle(async (req, res) => {
 });
 
 const register = asyncHandle(async (req, res) => {
-    const { email, fullname, password } = (req.body);
+    const { email, fullname, password ,name_role} = (req.body);
     // kiểm tra xem email có bị trùng lặp hay không(email đã đăng ký tài khoản)
-    const existingUser = await UserModel.findOne({ email });
+    const existingUser = await UserModel.findOne({ email }).populate('role_id');
+    const defaultRole = await RoleModel.findOne({ name_role: name_role??"user" });
+    if(!defaultRole){
+        res.status(401)
+        throw new Error(`role not found`)
+    }
     // nếu có user thì trả ra lỗi
     if (existingUser) {
         res.status(401)
@@ -83,27 +89,30 @@ const register = asyncHandle(async (req, res) => {
     const newUser = new UserModel({
         fullname: fullname ?? '',
         email,
-        password: hashedPassword
+        password: hashedPassword,
+        role_id:defaultRole._id
     })
 
     // lưu vào database
     await newUser.save()
 
-
+    const userWithRole = await UserModel.findById(newUser.id).populate('role_id');
     res.status(200).json({
         message: "Register new user successfully",
         data: {
-            email: newUser.email,
-            id: newUser.id,
-            accesstoken: await getJsonWebToken(email, newUser.id),
+            email: userWithRole.email,
+            id: userWithRole.id,
+            role_id:userWithRole.role_id,
+            accesstoken: await getJsonWebToken(email, userWithRole.id),
         }
     });
 });
 
 const login = asyncHandle(async (req, res) => {
     const { email, password } = req.body
+    const defaultRole = await RoleModel.findOne({ name_role: "user" });
 
-    const existingUser = await UserModel.findOne({ email });
+    const existingUser = await UserModel.findOne({ email }).populate('role_id');
     if (!existingUser) {
         res.status(403);
         throw new Error('User not found!!!')
@@ -120,6 +129,7 @@ const login = asyncHandle(async (req, res) => {
         data: {
             id: existingUser.id,
             email: existingUser.email,
+            role_id:defaultRole,
             accesstoken: await getJsonWebToken(email, existingUser.id),
         },
     })
@@ -188,18 +198,18 @@ const getUserData = asyncHandle(async (req, res) => {
 
 const handleLoginWithGoogle = asyncHandle(async(req, res) => {
     const userInfo = req.body;
-
-    const existingUser = await UserModel.findOne({ email: userInfo.email });
-    // console.log(existingUser);
+    const defaultRole = await RoleModel.findOne({ name_role: "user" });
+    const existingUser = await UserModel.findOne({ email: userInfo.email }).populate('role_id');
     let user = {...userInfo}
     if(existingUser) {
         await UserModel.findByIdAndUpdate(existingUser.id, {...userInfo, updatedAt: Date.now()})
         console.log('Update done')
-        user.accesstoken = await getJsonWebToken(userInfo.email, userInfo.id)
+        user.accesstoken = await getJsonWebToken(userInfo.email, userInfo.id,)
     } else {
         const newUser = new UserModel({
             fullname: userInfo.name,
             email: userInfo.email,
+            role_id:defaultRole._id,
             ...userInfo
         })
         await newUser.save();
@@ -209,13 +219,38 @@ const handleLoginWithGoogle = asyncHandle(async(req, res) => {
     
     res.status(200).json({
         massage: 'Login with google successfully',
-        data: {...user, id: existingUser ? existingUser.id : user.id}, 
+        data: {...user, id: existingUser ? existingUser.id : user.id,role_id:defaultRole}, 
     })
 
     // Ở đây nó không lấy được id từ mongodb mà nó chỉ lấy được id của tài khoản gg vì vậy mình cần lấy thêm id khi người dùng 
     // đăng nhập bằng gg trong mongodb thành công lúc đó mới đặt hàng được.
 })
 
+const createAdminIfNotExists = asyncHandle(async()=>{
+    const existingUser = await UserModel.findOne({ email: 'admin@gmail.com' }).populate('role_id');
+    const defaultRole = await RoleModel.findOne({ name_role: "admin" });
+
+    if (!defaultRole) {
+        console.error('Role not found');
+        return;
+    }
+
+    // Nếu không có user, tạo user mới
+    if (!existingUser) {
+        const salt = await bcryp.genSalt(10);
+        const hashedPassword = await bcryp.hash('admin123', salt);
+
+        const newAdmin = new UserModel({
+            fullname: 'admin',
+            email: "admin@gmail.com",
+            password: hashedPassword,
+            role_id: defaultRole._id
+        });
+
+        await newAdmin.save();
+        console.log('Tạo thành công admin');
+    }
+})
 module.exports = {
     register,
     login,
@@ -223,4 +258,5 @@ module.exports = {
     forgotPassword,
     getUserData,
     handleLoginWithGoogle,
+    createAdminIfNotExists
 }
