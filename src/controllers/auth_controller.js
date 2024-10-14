@@ -46,11 +46,11 @@ const verification = asyncHandle(async (req, res) => {
 
     try {
         const data = {
-            from: `AZ_Laundry <duccu1403@gmail.com>`, // sender address
-            to: email, // list of receivers
-            subject: "Verification email code", // Subject line
-            text: "Your code to verificayion email", // plain text body
-            html: `<h1>${verificationCode}</h1>`, // html body
+            from: `AZ_Laundry <duccu1403@gmail.com>`,
+            to: email, 
+            subject: "Verification email code", 
+            text: "Your code to verificayion email", 
+            html: `<h1>${verificationCode}</h1>`, 
         }
         await handleSendMail(data);
 
@@ -142,11 +142,11 @@ const forgotPassword = asyncHandle(async(req, res) => {
 
     const randomPassword = Math.round(100000 + Math.random() * 99000);
     const data = {
-        from: `Mật Khẩu Mới <duccu1403@gmail.com>`, // sender address
-        to: email, // list of receivers
-        subject: "Verification email code", // Subject line
-        text: "Your code to verificayion email", // plain text body
-        html: `<h1>${randomPassword}</h1>`, // html body
+        from: `Mật Khẩu Mới <duccu1403@gmail.com>`, 
+        to: email, 
+        subject: "Verification email code", 
+        text: "Your code to verificayion email", 
+        html: `<h1>${randomPassword}</h1>`, 
     }
 
     // cập nhật mật khẩu mới của người dùng vào tài khoản. Kiểm tra xem trên local có tài
@@ -200,8 +200,9 @@ const getUserData = asyncHandle(async (req, res) => {
 
 const handleLoginWithGoogle = asyncHandle(async(req, res) => {
     const userInfo = req.body;
+
     const defaultRole = await RoleModel.findOne({ name_role: "user" });
-    const existingUser = await UserModel.findOne({ email: userInfo.email }).populate('role_id');
+
     let user = {...userInfo}
     if(existingUser) {
         await UserModel.findByIdAndUpdate(existingUser.id, {...userInfo, updatedAt: Date.now()})
@@ -215,7 +216,6 @@ const handleLoginWithGoogle = asyncHandle(async(req, res) => {
             ...userInfo
         })
         await newUser.save();
-        // console.log('Created user')
         user.accesstoken = await getJsonWebToken(userInfo.email, newUser.id)
     }
     
