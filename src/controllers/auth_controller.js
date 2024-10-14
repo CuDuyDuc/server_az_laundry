@@ -100,6 +100,7 @@ const register = asyncHandle(async (req, res) => {
     res.status(200).json({
         message: "Register new user successfully",
         data: {
+            fullname:userWithRole.fullname,
             email: userWithRole.email,
             id: userWithRole.id,
             role_id:userWithRole.role_id,
@@ -128,6 +129,7 @@ const login = asyncHandle(async (req, res) => {
         message: 'Login successfully',
         data: {
             id: existingUser.id,
+            fullname:existingUser.fullname,
             email: existingUser.email,
             role_id:defaultRole,
             accesstoken: await getJsonWebToken(email, existingUser.id),
@@ -219,7 +221,7 @@ const handleLoginWithGoogle = asyncHandle(async(req, res) => {
     
     res.status(200).json({
         massage: 'Login with google successfully',
-        data: {...user, id: existingUser ? existingUser.id : user.id,role_id:defaultRole}, 
+        data: {...user, id: existingUser ? existingUser.id : user.id,role_id:defaultRole,fullname:existingUser.fullname}, 
     })
 
     // Ở đây nó không lấy được id từ mongodb mà nó chỉ lấy được id của tài khoản gg vì vậy mình cần lấy thêm id khi người dùng 
