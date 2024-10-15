@@ -39,6 +39,6 @@ const getServiceType = asyncHandler(async (_req, res) => {
         res.status(401)
         throw new Error("Lỗi data")
     }
-})
+});
 
 module.exports = { addServiceType, getServiceType}

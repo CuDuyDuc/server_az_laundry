@@ -35,4 +35,17 @@ const addProduct = asyncHandler(async (req, res) => {
     })
 });
 
-module.exports = {addProduct}
+const getProduct = asyncHandler(async (_req, res) => {
+    const data = await ProductModel.find().sort({ createAt: -1 });
+    if (data) {
+        res.status(200).json({
+            "messenger": "Thành công",
+            "data": data
+        })
+    } else {
+        res.status(401)
+        throw new Error("Lỗi data")
+    }
+})
+
+module.exports = {addProduct, getProduct}

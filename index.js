@@ -22,6 +22,7 @@ app.use('/api/auth', AuthRouter)
 app.use('/api/service-type', ServiceTypeRouter)
 app.use('/api/product', ProductRouter)
 app.use('/api/product-type', ProductTypeRouter)
+app.use('/api/tip', RouterTip)
 createAdminIfNotExists();
 
 connectDB()
