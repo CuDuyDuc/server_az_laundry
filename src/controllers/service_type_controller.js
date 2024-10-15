@@ -20,11 +20,25 @@ const addServiceType = asyncHandler(async (req, res) => {
     const data = req.body;
     const newServiceType = new ServiceTypeModel({
         service_type_name: data.service_type_name,
-        service_type_icon: downloadURL, 
+        service_type_icon: downloadURL,
     });
     await newServiceType.save();
     res.status(200).json({
         data: newServiceType,
     });
 });
-module.exports={addServiceType}
+
+const getServiceType = asyncHandler(async (_req, res) => {
+    const data = await ServiceTypeModel.find().sort({ createAt: -1 });
+    if (data) {
+        res.status(200).json({
+            "messenger": "Thành công",
+            "data": data
+        })
+    } else {
+        res.status(401)
+        throw new Error("Lỗi data")
+    }
+})
+
+module.exports = { addServiceType, getServiceType}
