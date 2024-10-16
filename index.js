@@ -8,6 +8,7 @@ const { createAdminIfNotExists } = require("./src/controllers/auth_controller")
 const ServiceTypeRouter = require("./src/routers/service_type_router")
 const ProductRouter = require("./src/routers/product_router")
 const ProductTypeRouter = require("./src/routers/product_type_router")
+const RouterTip = require("./src/routers/tip_router")
 
 
 const app = express()

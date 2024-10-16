@@ -4,7 +4,11 @@ const asyncHandle = require('express-async-handler');
 const jwt = require('jsonwebtoken');
 const nodemailer = require('nodemailer');
 const RoleModel = require("../models/role_model");
-
+const { initializeApp } = require("firebase/app");
+const { getDownloadURL, getStorage, ref, uploadBytesResumable } = require('firebase/storage');
+const firebaseConfig = require("../configs/firebase.config");
+initializeApp(firebaseConfig)
+const storage = getStorage()
 
 const transporter = nodemailer.createTransport({
     host: "smtp.gmail.com",
@@ -227,6 +231,130 @@ const handleLoginWithGoogle = asyncHandle(async(req, res) => {
     // Ở đây nó không lấy được id từ mongodb mà nó chỉ lấy được id của tài khoản gg vì vậy mình cần lấy thêm id khi người dùng 
     // đăng nhập bằng gg trong mongodb thành công lúc đó mới đặt hàng được.
 })
+const createUser = asyncHandle(async (req, res) => {
+    if (!req.files || !req.files.thumbnail || !req.files.shop_banner) {
+        return res.status(400).json({ message: 'Both thumbnail and shop_banner images are required.' });
+    }
+
+    const thumbnailFile = req.files.thumbnail[0]; 
+    const thumbnailRef = ref(storage, `shops/thumbnails/${thumbnailFile.originalname}`);
+    const thumbnailMetadata = { contentType: thumbnailFile.mimetype };
+    const thumbnailSnapshot = await uploadBytesResumable(thumbnailRef, thumbnailFile.buffer, thumbnailMetadata);
+    const thumbnailURL = await getDownloadURL(thumbnailSnapshot.ref);
+
+    const bodyImageFile = req.files.shop_banner[0]; 
+    const bodyImageRef = ref(storage, `shops/shop-banner/${bodyImageFile.originalname}`);
+    const bodyImageMetadata = { contentType: bodyImageFile.mimetype };
+    const bodyImageSnapshot = await uploadBytesResumable(bodyImageRef, bodyImageFile.buffer, bodyImageMetadata);
+    const bodyImageURL = await getDownloadURL(bodyImageSnapshot.ref);
+
+    const { email, fullname, password, data_user, role_id,address,latitude,longitude } = req.body;
+
+    if (!data_user || typeof data_user !== 'object') {
+        return res.status(400).json({
+            message: "data_user object is required and must contain shop_name, star_rating, and orderCount"
+        });
+    }
+
+    const { shop_name, star_rating, order_count } = data_user;
+    if (!shop_name || !star_rating || !order_count) {
+        return res.status(400).json({
+            message: "data_user object must contain shop_name, star_rating, and orderCount"
+        });
+    }
+
+    const existingUser = await UserModel.findOne({ email }).populate('role_id');
+    if (existingUser) {
+        res.status(401);
+        throw new Error('User already exists!!!');
+    }
+
+    const salt = await bcryp.genSalt(10);
+    const hashedPassword = await bcryp.hash(password, salt);
+
+    const newUser = new UserModel({
+        fullname: fullname ?? '',
+        email,
+        password: hashedPassword,
+        role_id: role_id,
+        address,
+        location: {
+            type: 'Point',
+            coordinates: [longitude, latitude], // Đảm bảo là longitude trước, latitude sau
+        },
+        data_user: {
+            shop_name,
+            thumbnail: thumbnailURL,
+            shop_banner: bodyImageURL,
+            star_rating,
+            order_count: order_count
+        }
+    });
+
+    await newUser.save();
+    const userWithRole = await UserModel.findById(newUser.id).populate('role_id');
+
+    res.status(200).json({
+        message: "Create new user successfully",
+        data: {
+            fullname: userWithRole.fullname,
+            email: userWithRole.email,
+            id: userWithRole.id,
+            role_id: userWithRole.role_id,
+            address:userWithRole.address,
+            location:userWithRole.location,
+            data_user: userWithRole.data_user,
+            accesstoken: await getJsonWebToken(email, userWithRole.id),
+        }
+    });
+});
+
+const getShops = asyncHandle(async (req, res) => {
+    const { currentLatitude, currentLongitude, limit } = req.body;
+    
+    try {
+        let getShops;
+        
+        if (currentLongitude && currentLatitude) {
+            // Nếu có tọa độ, tìm kiếm gần theo geo
+            const roleShop = await RoleModel.findOne({ name_role: "shop" });
+            getShops = await UserModel.aggregate([
+                {
+                    // Tìm kiếm gần bằng geo
+                    $geoNear: {
+                        near: {
+                            type: 'Point',
+                            coordinates: [currentLongitude, currentLatitude], // Tọa độ của người dùng
+                        },
+                        distanceField: 'distance', // Trường lưu khoảng cách
+                        spherical: true,
+                    },
+                },
+                {
+                    // Lọc người dùng có role_id là shop
+                    $match: {
+                        role_id: roleShop._id
+                    },
+                },
+                {
+                    $limit: limit || 0,
+                }
+            ]);
+        } else {
+            const roleShop = await RoleModel.findOne({ name_role: "shop" });
+            getShops = await UserModel.find({ role_id: roleShop._id }).limit(parseInt(limit) || 0);
+        }
+
+        res.status(200).json({
+            "messenger": "Thành công",
+            "data": getShops
+        });
+    } catch (error) {
+        console.error('Error fetching shops: ', error);
+        res.status(500).json({ message: 'Lỗi khi truy vấn', error: error.message });
+    }
+});
+
 
 const createAdminIfNotExists = asyncHandle(async()=>{
     const existingUser = await UserModel.findOne({ email: 'admin@gmail.com' }).populate('role_id');
@@ -260,5 +388,7 @@ module.exports = {
     forgotPassword,
     getUserData,
     handleLoginWithGoogle,
-    createAdminIfNotExists
+    createAdminIfNotExists,
+    createUser,
+    getShops
 }
