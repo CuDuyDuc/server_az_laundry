@@ -21,6 +21,7 @@ const addProductType = asyncHandler(async (req, res) => {
     const newProductType = new Product_Type_Model({
         product_type_name: data.product_type_name,
         product_type_icon: downloadURL,
+        id_service_type:data.id_service_type
     });
     await newProductType.save();
     res.status(200).json({
@@ -28,4 +29,21 @@ const addProductType = asyncHandler(async (req, res) => {
     });
 });
 
-module.exports = {addProductType}
+
+const getDataProductType = asyncHandler(async (req, res) => {
+    const {  id_service_type } = req.query; 
+    const data = await Product_Type_Model.find({id_service_type}).populate("id_service_type")
+    if (data) {
+        res.status(200).json({
+            "message":"get product type",
+            data: data
+        });
+    } else {
+        res.status(404).json({
+            "message": "Data not found"
+        });
+    }
+});
+
+
+module.exports = {addProductType,getDataProductType}
