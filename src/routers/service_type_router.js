@@ -6,6 +6,6 @@ const upload = multer({ storage: multer.memoryStorage() });
 const ServiceTypeRouter = Router()
 
 ServiceTypeRouter.post('/add-service-type',upload.single("service_type_icon"),addServiceType)
-ServiceTypeRouter.get('/get-service-type',upload.single("service_type"),getServiceType)
+ServiceTypeRouter.get('/get-service-type',getServiceType)
 
 module.exports = ServiceTypeRouter

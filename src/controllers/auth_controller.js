@@ -202,6 +202,30 @@ const getUserData = asyncHandle(async (req, res) => {
     }
 });
 
+const getUserById= asyncHandle(async (req, res) => {
+    const {  id_user } = req.query; 
+    const user = await UserModel.find({_id:id_user}).populate("role_id")
+    try {
+        if(user){
+            res.status(200).json({
+                message: 'getUser by Id',
+                data: user,
+            });
+        }else{
+            res.status(400).json({
+                message: 'lỗi user ',
+            }); 
+        }
+    } catch (error) {
+        console.error(error.message);
+        res.status(500).json({
+            message: 'Internal Server Error',
+            error: error.message,
+        });
+    }
+});
+
+
 const handleLoginWithGoogle = asyncHandle(async(req, res) => {
     const userInfo = req.body;
 
@@ -311,14 +335,15 @@ const createUser = asyncHandle(async (req, res) => {
 
 const getShops = asyncHandle(async (req, res) => {
     const { currentLatitude, currentLongitude, limit } = req.body;
-    
+
     try {
         let getShops;
-        
+
+        const roleShop = await RoleModel.findOne({ name_role: "shop" });
+
         if (currentLongitude && currentLatitude) {
             // Nếu có tọa độ, tìm kiếm gần theo geo
-            const roleShop = await RoleModel.findOne({ name_role: "shop" });
-            getShops = await UserModel.aggregate([
+            const aggregatePipeline = [
                 {
                     // Tìm kiếm gần bằng geo
                     $geoNear: {
@@ -331,18 +356,24 @@ const getShops = asyncHandle(async (req, res) => {
                     },
                 },
                 {
-                    // Lọc người dùng có role_id là shop
                     $match: {
                         role_id: roleShop._id
                     },
                 },
-                {
-                    $limit: limit || 0,
-                }
-            ]);
+            ];
+
+            // Chỉ thêm $limit nếu limit được cung cấp và lớn hơn 0
+            if (limit > 0) {
+                aggregatePipeline.push({ $limit: limit });
+            }
+
+            getShops = await UserModel.aggregate(aggregatePipeline);
         } else {
-            const roleShop = await RoleModel.findOne({ name_role: "shop" });
-            getShops = await UserModel.find({ role_id: roleShop._id }).limit(parseInt(limit) || 0);
+            // Khi không có tọa độ, tìm kiếm tất cả
+            getShops = await UserModel.find({ role_id: roleShop._id }).limit(limit||0);
+
+            // Giới hạn số kết quả nếu có limit
+            
         }
 
         res.status(200).json({
@@ -354,6 +385,8 @@ const getShops = asyncHandle(async (req, res) => {
         res.status(500).json({ message: 'Lỗi khi truy vấn', error: error.message });
     }
 });
+
+
 
 
 const createAdminIfNotExists = asyncHandle(async()=>{
@@ -390,5 +423,6 @@ module.exports = {
     handleLoginWithGoogle,
     createAdminIfNotExists,
     createUser,
-    getShops
+    getShops,
+    getUserById
 }
