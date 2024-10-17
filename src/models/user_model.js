@@ -48,11 +48,9 @@ const UserSchema = new mongoose.Schema({
         type: {
             type: String, // Kiểu 'Point'
             enum: ['Point'], // Chỉ cho phép 'Point'
-            required: true,
         },
         coordinates: {
             type: [Number], // longitude trước, latitude sau
-            required: true,
         },
     },
     role_id: {
