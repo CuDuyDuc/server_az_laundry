@@ -42,6 +42,19 @@ const UserSchema = new mongoose.Schema({
         },
         order_count: {
             type: Number, 
+        },
+        store_evaluation:{
+            comment:{
+                type:String
+            },
+            review_photo:{
+                type:String
+            },
+            reviewer_id: {
+                type: mongoose.Schema.Types.ObjectId,
+                ref: "user",
+            },
+            
         }
     },
     location: {
