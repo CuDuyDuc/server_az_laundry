@@ -25,8 +25,10 @@ const addProduct = asyncHandler(async (req, res) => {
         product_photo : downloadURLs,
         product_name:data.product_name,
         product_price:data.product_price,
+        id_user:data.id_user,
         data_product:data.data_product,
         product_description:data.product_description,
+        short_description:data.short_description,
         id_product_type: data.id_product_type
     })
     await newProduct.save();
@@ -48,4 +50,29 @@ const getProduct = asyncHandler(async (_req, res) => {
     }
 })
 
-module.exports = {addProduct, getProduct}
+const getProductByIdUser= asyncHandler(async(req,res)=>{
+    try {
+        const { id_user } = req.query;
+        if(id_user){
+            const products = await ProductModel.find({ id_user })
+            .populate({
+                path: 'id_product_type', 
+                populate: { 
+                    path: 'id_service_type',
+                    model: 'service_type' 
+                }
+            })
+            .sort({ 'id_product_type.id_service_type': 1 }) 
+            .exec();
+
+            res.status(200).json({
+                "messenger": "Thành công",
+                "data": products
+            })
+        }
+    } catch (error) {
+        res.status(500).json({ message: 'Error fetching products', error });
+    }
+})
+
+module.exports = {addProduct, getProduct,getProductByIdUser}

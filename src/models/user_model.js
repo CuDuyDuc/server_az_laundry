@@ -42,17 +42,28 @@ const UserSchema = new mongoose.Schema({
         },
         order_count: {
             type: Number, 
+        },
+        store_evaluation:{
+            comment:{
+                type:String
+            },
+            review_photo:{
+                type:String
+            },
+            reviewer_id: {
+                type: mongoose.Schema.Types.ObjectId,
+                ref: "user",
+            },
+            
         }
     },
     location: {
         type: {
             type: String, // Kiểu 'Point'
             enum: ['Point'], // Chỉ cho phép 'Point'
-            required: true,
         },
         coordinates: {
             type: [Number], // longitude trước, latitude sau
-            required: true,
         },
     },
     role_id: {
