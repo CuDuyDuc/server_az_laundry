@@ -114,32 +114,34 @@ const register = asyncHandle(async (req, res) => {
 });
 
 const login = asyncHandle(async (req, res) => {
-    const { email, password } = req.body
-    const defaultRole = await RoleModel.findOne({ name_role: "user" });
+    const { email, password } = req.body;
 
+    // Tìm người dùng theo email và populate role_id
     const existingUser = await UserModel.findOne({ email }).populate('role_id');
     if (!existingUser) {
         res.status(403);
-        throw new Error('User not found!!!')
+        throw new Error('User not found!!!');
     }
 
+    // Kiểm tra mật khẩu
     const isMatchPassword = await bcryp.compare(password, existingUser.password);
     if (!isMatchPassword) {
         res.status(401);
         throw new Error('Email or Password is not correct!');
     }
 
+    // Trả về vai trò thực tế của người dùng thay vì gán vai trò mặc định
     res.status(200).json({
         message: 'Login successfully',
         data: {
             id: existingUser.id,
-            fullname:existingUser.fullname,
+            fullname: existingUser.fullname,
             email: existingUser.email,
-            role_id:defaultRole,
+            role_id: existingUser.role_id, // Lấy role_id từ cơ sở dữ liệu
             accesstoken: await getJsonWebToken(email, existingUser.id),
         },
-    })
-})
+    });
+});
 
 const forgotPassword = asyncHandle(async(req, res) => {
     const {email} = req.body;
