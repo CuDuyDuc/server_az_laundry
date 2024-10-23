@@ -75,4 +75,20 @@ const getProductByIdUser= asyncHandler(async(req,res)=>{
     }
 })
 
-module.exports = {addProduct, getProduct,getProductByIdUser}
+const getProductsByIdUserAndIdProductType = asyncHandler(async(req,res)=>{
+    const {id_user,id_product_type} =req.params
+    const products = await ProductModel.find({id_user:id_user,id_product_type:id_product_type}).populate('id_user').populate('id_product_type')
+    if(products){
+        res.status(200).json({
+            "messenger": "Thành công",
+            "data": products
+        })
+    }else{
+        res.status(500).json({ message: 'Error fetching products', error });
+
+    }
+})
+
+
+
+module.exports = {addProduct, getProduct,getProductByIdUser,getProductsByIdUserAndIdProductType}

@@ -1,5 +1,5 @@
 const Router = require('express');
-const { register, login, verification, forgotPassword, getUserData, handleLoginWithGoogle, createUser, getShops, getUserById } = require('../controllers/auth_controller');
+const { register, login, verification, forgotPassword, getUserData, handleLoginWithGoogle, createUser, getShops, getUserById, getShopsByProductType } = require('../controllers/auth_controller');
 const multer = require('multer');
 
 const AuthRouter = Router();
@@ -18,4 +18,5 @@ AuthRouter.post('/create-user', upload.fields([
 ]), createUser);
 AuthRouter.post('/get-shops',getShops),
 AuthRouter.get('/get-user-by-id',getUserById)
+AuthRouter.post('/get-shop-by-product-type',getShopsByProductType)
 module.exports = AuthRouter;
