@@ -259,6 +259,9 @@ const handleLoginWithGoogle = asyncHandle(async (req, res) => {
             log: `User with email ${userInfo.email} has role ${existingUser.role_id.name_role}`
         });
     }
+
+    // Ở đây nó không lấy được id từ mongodb mà nó chỉ lấy được id của tài khoản gg vì vậy mình cần lấy thêm id khi người dùng 
+    // đăng nhập bằng gg trong mongodb thành công lúc đó mới đặt hàng được.
 });
 const createUser = asyncHandle(async (req, res) => {
     if (!req.files || !req.files.thumbnail || !req.files.shop_banner) {
