@@ -229,42 +229,37 @@ const getUserById= asyncHandle(async (req, res) => {
 });
 
 
-const handleLoginWithGoogle = asyncHandle(async(req, res) => {
+const handleLoginWithGoogle = asyncHandle(async (req, res) => {
     const userInfo = req.body;
-
     const defaultRole = await RoleModel.findOne({ name_role: "user" });
-    const existingUser = await UserModel.findOne({ email:userInfo.email }).populate('role_id');
-    if(existingUser.role_id.name_role==="user"){
-        let user = {...userInfo}
-        if(existingUser) {
-            await UserModel.findByIdAndUpdate(existingUser.id, {...userInfo, updatedAt: Date.now()})
-            console.log('Update done')
-            user.accesstoken = await getJsonWebToken(userInfo.email, userInfo.id,)
-        } else {
-            const newUser = new UserModel({
-                fullname: userInfo.name,
-                email: userInfo.email,
-                role_id:defaultRole._id,
-                ...userInfo
-            })
-            await newUser.save();
-            user.accesstoken = await getJsonWebToken(userInfo.email, newUser.id)
-        }
-        
+    const existingUser = await UserModel.findOne({ email: userInfo.email }).populate('role_id');
+    if (!existingUser) {
+        const newUser = new UserModel({
+            fullname: userInfo.name,
+            email: userInfo.email,
+            role_id: defaultRole._id,
+            ...userInfo
+        });
+        await newUser.save();
+        const accessToken = await getJsonWebToken(userInfo.email, newUser.id);
         res.status(200).json({
-            massage: 'Login with google successfully',
-            data: {...user, id: existingUser ? existingUser.id : user.id,role_id:defaultRole,fullname:existingUser?existingUser.fullname:user.fullname }, 
-        })
-    }else{
+            message: 'Login with Google successfully',
+            data: { ...userInfo, id: newUser.id, role_id: defaultRole, fullname: newUser.fullname, accessToken }
+        });
+    } else if (existingUser.role_id.name_role === "user") {
+        await UserModel.findByIdAndUpdate(existingUser.id, { ...userInfo, updatedAt: Date.now() });
+        const accessToken = await getJsonWebToken(userInfo.email, existingUser.id);
+        res.status(200).json({
+            message: 'Login with Google successfully',
+            data: { ...userInfo, id: existingUser.id, role_id: defaultRole, fullname: existingUser.fullname, accessToken }
+        });
+    } else {
         res.status(400).json({
-            message: 'Người dùng không có vai trò thích hợp để đăng nhập với bên thứ ba',
+            message: 'User does not have the appropriate role to login with Google.',
             log: `User with email ${userInfo.email} has role ${existingUser.role_id.name_role}`
         });
     }
-
-    // Ở đây nó không lấy được id từ mongodb mà nó chỉ lấy được id của tài khoản gg vì vậy mình cần lấy thêm id khi người dùng 
-    // đăng nhập bằng gg trong mongodb thành công lúc đó mới đặt hàng được.
-})
+});
 const createUser = asyncHandle(async (req, res) => {
     if (!req.files || !req.files.thumbnail || !req.files.shop_banner) {
         return res.status(400).json({ message: 'Both thumbnail and shop_banner images are required.' });
