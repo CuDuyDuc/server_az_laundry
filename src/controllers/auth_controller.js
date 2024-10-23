@@ -7,6 +7,7 @@ const RoleModel = require("../models/role_model");
 const { initializeApp } = require("firebase/app");
 const { getDownloadURL, getStorage, ref, uploadBytesResumable } = require('firebase/storage');
 const firebaseConfig = require("../configs/firebase.config");
+const ProductModel = require("../models/product_model");
 initializeApp(firebaseConfig)
 const storage = getStorage()
 
@@ -233,26 +234,33 @@ const handleLoginWithGoogle = asyncHandle(async(req, res) => {
 
     const defaultRole = await RoleModel.findOne({ name_role: "user" });
     const existingUser = await UserModel.findOne({ email:userInfo.email }).populate('role_id');
-    let user = {...userInfo}
-    if(existingUser) {
-        await UserModel.findByIdAndUpdate(existingUser.id, {...userInfo, updatedAt: Date.now()})
-        console.log('Update done')
-        user.accesstoken = await getJsonWebToken(userInfo.email, userInfo.id,)
-    } else {
-        const newUser = new UserModel({
-            fullname: userInfo.name,
-            email: userInfo.email,
-            role_id:defaultRole._id,
-            ...userInfo
+    if(existingUser.role_id.name_role==="user"){
+        let user = {...userInfo}
+        if(existingUser) {
+            await UserModel.findByIdAndUpdate(existingUser.id, {...userInfo, updatedAt: Date.now()})
+            console.log('Update done')
+            user.accesstoken = await getJsonWebToken(userInfo.email, userInfo.id,)
+        } else {
+            const newUser = new UserModel({
+                fullname: userInfo.name,
+                email: userInfo.email,
+                role_id:defaultRole._id,
+                ...userInfo
+            })
+            await newUser.save();
+            user.accesstoken = await getJsonWebToken(userInfo.email, newUser.id)
+        }
+        
+        res.status(200).json({
+            massage: 'Login with google successfully',
+            data: {...user, id: existingUser ? existingUser.id : user.id,role_id:defaultRole,fullname:existingUser?existingUser.fullname:user.fullname }, 
         })
-        await newUser.save();
-        user.accesstoken = await getJsonWebToken(userInfo.email, newUser.id)
+    }else{
+        res.status(400).json({
+            message: 'Người dùng không có vai trò thích hợp để đăng nhập với bên thứ ba',
+            log: `User with email ${userInfo.email} has role ${existingUser.role_id.name_role}`
+        });
     }
-    
-    res.status(200).json({
-        massage: 'Login with google successfully',
-        data: {...user, id: existingUser ? existingUser.id : user.id,role_id:defaultRole,fullname:existingUser?existingUser.fullname:user.fullname }, 
-    })
 
     // Ở đây nó không lấy được id từ mongodb mà nó chỉ lấy được id của tài khoản gg vì vậy mình cần lấy thêm id khi người dùng 
     // đăng nhập bằng gg trong mongodb thành công lúc đó mới đặt hàng được.
@@ -416,6 +424,77 @@ const createAdminIfNotExists = asyncHandle(async()=>{
         console.log('Tạo thành công admin');
     }
 })
+
+
+const getShopsByProductType = asyncHandle(async (req, res) => {
+    const { id_product_type, currentLatitude, currentLongitude } = req.body;
+    try {
+        // 1. Tìm sản phẩm có `id_product_type` và lấy danh sách `id_user`
+        const products = await ProductModel.find({ id_product_type }).select('id_user');
+        const userIds = products.map(product => product.id_user); // Lấy danh sách `id_user`
+
+        if (!userIds.length) {
+            return res.status(404).json({ message: "Không tìm thấy shop nào cho product_type này." });
+        }
+
+        // 2. Tìm role của shop
+        const roleShop = await RoleModel.findOne({ name_role: "shop" });
+
+        // 3. Tạo pipeline tìm kiếm shop, nếu có tọa độ, thêm $geoNear
+        const aggregatePipeline = [];
+
+        if (currentLatitude && currentLongitude) {
+            aggregatePipeline.push({
+                // Tìm shop gần nhất theo vị trí
+                $geoNear: {
+                    near: {
+                        type: 'Point',
+                        coordinates: [currentLongitude, currentLatitude], // Tọa độ của người dùng
+                    },
+                    distanceField: 'distance', // Trường chứa khoảng cách tính được
+                    spherical: true,
+                },
+            });
+        }
+
+        // 4. Lọc shop theo `id_user` và role
+        aggregatePipeline.push(
+            {
+                $match: {
+                    _id: { $in: userIds }, // Lọc theo danh sách `id_user`
+                    role_id: roleShop._id, // Chỉ lấy user có role là shop
+                },
+            },
+            {
+                $project: {
+                    fullname: 1,
+                    email: 1,
+                    phone_number: 1,
+                    address: 1,
+                    "data_user.shop_name": 1,
+                    "data_user.thumbnail": 1,
+                    "data_user.shop_banner": 1,
+                    "data_user.star_rating": 1,
+                    "data_user.order_count": 1,
+                    distance: 1,
+                    location:1 // Nếu có geoNear, sẽ trả về distance
+                },
+            }
+        );
+
+        // 5. Thực thi truy vấn với pipeline
+        const shops = await UserModel.aggregate(aggregatePipeline);
+
+        return res.status(200).json({
+            message: "Lấy shop thành công",
+            data: shops,
+        });
+
+    } catch (error) {
+        console.error('Lỗi khi lấy shop: ', error);
+        res.status(500).json({ message: 'Lỗi khi truy vấn shop', error: error.message });
+    }
+});
 module.exports = {
     register,
     login,
@@ -426,5 +505,6 @@ module.exports = {
     createAdminIfNotExists,
     createUser,
     getShops,
-    getUserById
+    getUserById,
+    getShopsByProductType
 }
