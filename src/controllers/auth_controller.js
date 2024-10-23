@@ -234,12 +234,18 @@ const handleLoginWithGoogle = asyncHandle(async(req, res) => {
 
     const defaultRole = await RoleModel.findOne({ name_role: "user" });
     const existingUser = await UserModel.findOne({ email:userInfo.email }).populate('role_id');
-    if(existingUser.role_id.name_role==="user"){
-        let user = {...userInfo}
+    let user = {...userInfo}
         if(existingUser) {
-            await UserModel.findByIdAndUpdate(existingUser.id, {...userInfo, updatedAt: Date.now()})
-            console.log('Update done')
-            user.accesstoken = await getJsonWebToken(userInfo.email, userInfo.id,)
+           if(existingUser.role_id.name_role==="user"){
+                await UserModel.findByIdAndUpdate(existingUser.id, {...userInfo, updatedAt: Date.now()})
+                console.log('Update done')
+                user.accesstoken = await getJsonWebToken(userInfo.email, userInfo.id,)
+           }else{
+                res.status(400).json({
+                    message: 'Người dùng không có vai trò thích hợp để đăng nhập với bên thứ ba',
+                    log: `User with email ${userInfo.email} has role ${existingUser.role_id.name_role}`
+                });
+           }
         } else {
             const newUser = new UserModel({
                 fullname: userInfo.name,
@@ -255,12 +261,6 @@ const handleLoginWithGoogle = asyncHandle(async(req, res) => {
             massage: 'Login with google successfully',
             data: {...user, id: existingUser ? existingUser.id : user.id,role_id:defaultRole,fullname:existingUser?existingUser.fullname:user.fullname }, 
         })
-    }else{
-        res.status(400).json({
-            message: 'Người dùng không có vai trò thích hợp để đăng nhập với bên thứ ba',
-            log: `User with email ${userInfo.email} has role ${existingUser.role_id.name_role}`
-        });
-    }
 
     // Ở đây nó không lấy được id từ mongodb mà nó chỉ lấy được id của tài khoản gg vì vậy mình cần lấy thêm id khi người dùng 
     // đăng nhập bằng gg trong mongodb thành công lúc đó mới đặt hàng được.
