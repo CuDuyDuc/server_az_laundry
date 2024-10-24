@@ -10,8 +10,7 @@ const CartSchame = new mongoose.Schema({
         require: true
     },
     product_quantity: {
-        type: Array,
-        require: true
+        type: Number,
     },
     cart_subtotal: {
         type: Number,

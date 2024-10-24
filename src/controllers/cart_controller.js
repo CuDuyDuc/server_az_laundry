@@ -1,35 +1,37 @@
 const asyncHandle = require('express-async-handler')
 const CartModel = require('../models/cart_model')
 
-const addCart = asyncHandle(async(req,res)=>{
-    const {id_user,id_product,product_quantity,cart_subtotal}=req.body
-
-    const existingCart = await CartModel.find({id_user,id_product}).populate('id_user').populate('id_product')
-    if(existingCart){
-        let quantity = product_quantity ? product_quantity : existingCart.product_quantity + 1;
+const addCart = asyncHandle(async (req, res) => {
+    const { id_user, id_product, product_quantity, cart_subtotal } = req.body;
+    
+    const existingCart = await CartModel.findOne({ id_user, id_product })
+        .populate('id_user')
+        .populate('id_product');
+    if (existingCart) {
+        
+        let quantity = product_quantity ? product_quantity : 1;
         existingCart.product_quantity += quantity;
-        existingCart.cart_subtotal+=cart_subtotal
-        const updatedCart = (await(await existingCart.save()).populate('id_user').populate('id_product'))
+        existingCart.cart_subtotal += cart_subtotal * quantity;
+        const updatedCart = await existingCart.save();
         res.status(200).json({ data: updatedCart });
-    }else{
+    } else {
         const newCart = new CartModel({
             id_user,
             id_product,
             product_quantity,
-            cart_subtotal
-        })
-        const result = (await(await newCart.save()).populate('id_user').populate('id_product'))
+            cart_subtotal,
+        });
+        const result = (await (await newCart.save()).populate("id_product")).populate("id_user");
         if (result) {
             res.status(200).json({
-                "data": result
-            })
+                data: result,
+            });
         } else {
             res.status(401);
-            throw new Error("Lỗi thêm")
+            throw new Error("Lỗi thêm");
         }
     }
-    
-})
+});
 const getDataCart = asyncHandle(async (req, res) => {
     const {  id_user } = req.query; 
     const data = await CartModel.find({id_user}).populate("id_product").populate("id_user");
