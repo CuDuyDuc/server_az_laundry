@@ -25,7 +25,7 @@ app.use('/api/service-type', ServiceTypeRouter)
 app.use('/api/product', ProductRouter)
 app.use('/api/product-type', ProductTypeRouter)
 app.use('/api/tip', RouterTip)
-app.use('api/carts',CartRouter);
+app.use('api/cart',CartRouter);
 createAdminIfNotExists();
 
 connectDB()
