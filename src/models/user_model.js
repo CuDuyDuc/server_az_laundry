@@ -37,6 +37,10 @@ const UserSchema = new mongoose.Schema({
         shop_banner: {
             type: String,
         },
+        userId: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "auth",
+        },
         star_rating: {
             type: Number, 
         },
