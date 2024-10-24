@@ -1,6 +1,6 @@
 const Router = require('express');
 
-const {sendFirebaseNotification, addNotificationToken } = require('../controllers/firebase_notification_.controller');
+const {sendFirebaseNotification, addNotificationToken } = require('../controllers/firebase_notification_controller');
 
 
 const FirebaseRouter = Router();
