@@ -9,8 +9,10 @@ const ServiceTypeRouter = require("./src/routers/service_type_router")
 const ProductRouter = require("./src/routers/product_router")
 const ProductTypeRouter = require("./src/routers/product_type_router")
 const RouterTip = require("./src/routers/tip_router")
+const CartRouter = require("./src/routers/cart_route")
 const chatRouter = require("./src/routers/chat_router")
 const MessageRouter = require("./src/routers/message_router")
+
 
 
 const app = express()
@@ -26,8 +28,12 @@ app.use('/api/service-type', ServiceTypeRouter)
 app.use('/api/product', ProductRouter)
 app.use('/api/product-type', ProductTypeRouter)
 app.use('/api/tip', RouterTip)
+
+app.use('/api/cart',CartRouter);
+
 app.use("/api/chats", chatRouter);
 app.use("/api/messages", MessageRouter);
+
 createAdminIfNotExists();
 
 connectDB()
