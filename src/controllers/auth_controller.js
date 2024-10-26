@@ -191,7 +191,7 @@ const forgotPassword = asyncHandle(async(req, res) => {
 const getUserData = asyncHandle(async (req, res) => {
 
     try {
-        const user = await UserModel.find().populate('role_id');
+        const user = await UserModel.find();
         res.status(200).json(user);
     } catch (error) {
         console.error(error.message);
