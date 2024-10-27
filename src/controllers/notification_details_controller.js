@@ -1,12 +1,12 @@
 const Notification = require('../models/notification_model');
-const NotificationDetails = require('../models/notification_details_model');
 const asyncHandler = require('express-async-handler');
+const NotificationDetailsModel = require('../models/notification_details_model');
 
 const getNotificationDetailsByUserId = asyncHandler(async (req, res) => {
   const { userId } = req.query;
 
   // Tìm notification dựa trên userId
-  const notification = await Notification.findOne({ userId }).populate('notification_details');
+  const notification = await Notification.findOne({ userId }).populate('notificationDetails');
 
   if (!notification) {
     return res.status(404).json({
@@ -24,7 +24,8 @@ const getNotificationDetailsByUserId = asyncHandler(async (req, res) => {
 });
 
 const deleteNotificationDetailById = asyncHandler(async (req, res) => {
-  const { userId, notificationDetailsId } = req.params;
+  const { userId, notificationDetailsId } = req.body;
+console.log({userId: userId, notificationDetailsId: notificationDetailsId});
 
   // Tìm notification theo userId
   const notification = await Notification.findOne({ userId });
@@ -37,7 +38,7 @@ const deleteNotificationDetailById = asyncHandler(async (req, res) => {
   }
 
   // Xóa notificationDetails khỏi bảng NotificationDetails
-  const deletedDetail = await NotificationDetails.findByIdAndDelete(notificationDetailsId);
+  const deletedDetail = await NotificationDetailsModel.findByIdAndDelete(notificationDetailsId);
 
   if (!deletedDetail) {
     return res.status(404).json({

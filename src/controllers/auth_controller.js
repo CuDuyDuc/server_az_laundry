@@ -191,11 +191,8 @@ const forgotPassword = asyncHandle(async(req, res) => {
 const getUserData = asyncHandle(async (req, res) => {
 
     try {
-        const user = await UserModel.find();
-        res.status(200).json({
-            message: 'Users retrieved successfully',
-            data: user,
-        });
+        const user = await UserModel.find().populate("role_id");
+        res.status(200).json(user);
     } catch (error) {
         console.error(error.message);
         res.status(500).json({
@@ -210,10 +207,7 @@ const getUserById= asyncHandle(async (req, res) => {
     const user = await UserModel.find({_id:id_user}).populate("role_id")
     try {
         if(user){
-            res.status(200).json({
-                message: 'getUser by Id',
-                data: user,
-            });
+            res.status(200).json(user);
         }else{
             res.status(400).json({
                 message: 'lỗi user ',
@@ -495,6 +489,17 @@ const getShopsByProductType = asyncHandle(async (req, res) => {
         res.status(500).json({ message: 'Lỗi khi truy vấn shop', error: error.message });
     }
 });
+
+const findUserId = asyncHandle(async (req, res) => {
+    const userId = req.params.userId;
+    try {
+      const user = await UserModel.findById(userId)
+      res.status(200).json(user);
+    } catch (error) {
+      console.log(error);
+      res.status(500).json(error);
+    }
+  });
 module.exports = {
     register,
     login,
@@ -506,5 +511,6 @@ module.exports = {
     createUser,
     getShops,
     getUserById,
-    getShopsByProductType
+    getShopsByProductType, 
+    findUserId
 }

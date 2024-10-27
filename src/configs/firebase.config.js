@@ -18,3 +18,4 @@ const firebaseConfig = {
  
   
   module.exports = { firebaseConfig, admin };
+

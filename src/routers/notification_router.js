@@ -4,6 +4,6 @@ const { getNotificationDetailsByUserId, deleteNotificationDetailById } = require
 var NotificationRouter = Router();
 
 NotificationRouter.get('/get-alls', getNotificationDetailsByUserId);
-NotificationRouter.post('/delete', deleteNotificationDetailById);
+NotificationRouter.delete('/delete', deleteNotificationDetailById);
 
 module.exports = NotificationRouter;
