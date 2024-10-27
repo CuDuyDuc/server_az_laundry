@@ -1,3 +1,11 @@
+var admin = require("firebase-admin");
+
+var serviceAccount = require("../../adminFirebaseSDK.json");
+
+admin.initializeApp({
+  credential: admin.credential.cert(serviceAccount)
+});
+
 const firebaseConfig = {
     apiKey: "AIzaSyDi_NqHYSD-rXWSfbXloXCMJ3Yz4XJMQFs",
     authDomain: "az-laundry.firebaseapp.com",
@@ -7,5 +15,7 @@ const firebaseConfig = {
     appId: "1:785851564656:web:317f8d81b801f7391e6ab5",
     measurementId: "G-3C0T7870VZ"
   };
+ 
+  
+  module.exports = { firebaseConfig, admin };
 
-module.exports=firebaseConfig
