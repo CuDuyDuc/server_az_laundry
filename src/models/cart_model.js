@@ -22,6 +22,11 @@ const CartSchame = new mongoose.Schema({
         require: true
 
     },
+    status:{
+        type:String,
+        enum: ['Pending', 'Paid',"COD"],
+        default: 'Pending'
+    }
 },{timestamps: true})
 
 const CartModel = mongoose.model('cart', CartSchame);

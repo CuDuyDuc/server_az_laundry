@@ -4,7 +4,7 @@ const CartModel = require('../models/cart_model')
 const addCart = asyncHandle(async (req, res) => {
     const { id_user, id_product, product_quantity, cart_subtotal } = req.body;
     
-    const existingCart = await CartModel.findOne({ id_user, id_product })
+    const existingCart = await CartModel.findOne({ id_user, id_product,status:"Pending" })
         .populate('id_user')
         .populate('id_product');
     if (existingCart) {
@@ -21,7 +21,9 @@ const addCart = asyncHandle(async (req, res) => {
             product_quantity,
             cart_subtotal,
         });
-        const result = (await (await newCart.save()).populate("id_product")).populate("id_user");
+        const result = await newCart.save()
+        console.log(result);
+        
         if (result) {
             res.status(200).json({
                 data: result,
@@ -34,7 +36,7 @@ const addCart = asyncHandle(async (req, res) => {
 });
 const getDataCart = asyncHandle(async (req, res) => {
     const {  id_user } = req.query; 
-    const data = await CartModel.find({id_user}).populate("id_product").populate("id_user");
+    const data = await CartModel.find({id_user:id_user,status:"Pending"}).populate("id_product").populate("id_user");
     if (data) {
         res.status(200).json({
             "data": data
@@ -62,12 +64,11 @@ const updateCart = asyncHandle(async(req,res)=>{
 })
 const deleteCart = asyncHandle(async(req,res)=>{
     const {id}=req.params;
-    const result = await CartModel.findByIdAndDelete(id);
-    if(result){
+    try {
+        const result = await CartModel.findByIdAndDelete(id);
         res.status(200).json({'messenger':'thành công'})
-    }else{
-        res.status(401);
-        throw new Error("Lỗi")
+    } catch (error) {
+        res.status(401).json(error);
     }
 })
 module.exports={addCart,getDataCart,updateCart,deleteCart}
