@@ -41,7 +41,7 @@ const createPayment = asyncHandle(async (req, res) => {
         id_cart: id_cart,
         amount_money: amount_money,
         id_product:id_product||null,
-        paymentMethod,
+        method_payment:paymentMethod,
         status: 'Pending',
         data_payment: {
             shipping_fee: shipping_fee || 0,
@@ -61,11 +61,11 @@ const createPayment = asyncHandle(async (req, res) => {
                 req.connection.remoteAddress ||
                 req.socket.remoteAddress ||
                 req.connection.socket.remoteAddress;
-
+            
             const vnpUrl = "https://sandbox.vnpayment.vn/paymentv2/vpcpay.html";
             const vnp_TmnCode = "9KDMIQHJ";
             const vnp_HashSecret = process.env.vnp_HashSecret;
-            const vnp_ReturnUrl = "http://localhost:3000/api/payment/vnpay_return";
+            const vnp_ReturnUrl = `http://${process.env.IP_Address}:3000/api/payment/vnpay_return`;
             const orderId = payment._id.toString();
             const createDate = moment().format('YYYYMMDDHHmmss');
             const vnp_Params = {

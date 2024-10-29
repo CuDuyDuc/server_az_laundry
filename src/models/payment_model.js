@@ -15,6 +15,12 @@ const PaymentSchame = new mongoose.Schema({
         ref: "product",
 
     },
+    method_payment:{
+        type:String,
+        enum: ['VNPay', 'COD'],
+        default: 'COD'
+        
+    },
     data_payment: {
         shipping_fee: { type: Number, default: 0 }, 
         discount: { type: Number, default: 0 },     
@@ -32,6 +38,11 @@ const PaymentSchame = new mongoose.Schema({
         type:String,
         enum: ['Pending', 'Paid', 'Failed',"COD"],
         default: 'Pending'
+    },
+    confirmationStatus: {  
+        type: String,
+        enum: ['PendingConfirmation', 'AwaitingPickup', 'Completed'],
+        default: 'PendingConfirmation'
     }
 },{timestamps: true})
 

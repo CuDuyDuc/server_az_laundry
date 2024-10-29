@@ -64,12 +64,11 @@ const updateCart = asyncHandle(async(req,res)=>{
 })
 const deleteCart = asyncHandle(async(req,res)=>{
     const {id}=req.params;
-    const result = await CartModel.findByIdAndDelete(id);
-    if(result){
+    try {
+        const result = await CartModel.findByIdAndDelete(id);
         res.status(200).json({'messenger':'thành công'})
-    }else{
-        res.status(401);
-        throw new Error("Lỗi")
+    } catch (error) {
+        res.status(401).json(error);
     }
 })
 module.exports={addCart,getDataCart,updateCart,deleteCart}
