@@ -4,11 +4,18 @@ const NotificationDetailsModel = require("../models/notification_details_model")
 const asyncHandler = require("express-async-handler");
 
 const sendFirebaseNotification = asyncHandler(async (req, res) => {
-  const { userId, title, body, deviceToken } = req.body;
-  console.log({ userId, title, body, deviceToken });
+  const { userId, title, body } = req.body;
+  const userNotification = await Notification.findOne({ userId });
+    
+  if (!userNotification || !userNotification.fcmToken) {
+    throw new Error('Không tìm thấy fcmToken cho userId này');
+  }
+  const fcmToken = userNotification.fcmToken;
+
+  console.log({ userId, title, body, fcmToken });
 
   const result = await NotificationService.sendNotification(
-    deviceToken,
+    fcmToken,
     title,
     body
   );

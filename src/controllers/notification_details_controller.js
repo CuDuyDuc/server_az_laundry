@@ -93,7 +93,7 @@ const markNotificationAsRead = asyncHandler(async (req, res) => {
   const updatedNotification = await NotificationDetailsModel.findOneAndUpdate(
     { _id: notificationDetailsId, userId: userId },
     { notiStatus: 'read' },
-    { new: true } // Trả về document đã cập nhật
+    { new: true } 
   );
 
   if (!updatedNotification) {
