@@ -2,10 +2,10 @@ const NotificationService = require("../services/NotificationService");
 const Notification = require("../models/notification_model");
 const NotificationDetailsModel = require("../models/notification_details_model");
 const asyncHandler = require("express-async-handler");
-
+const { default : mongoose} = require('mongoose');
 const sendFirebaseNotification = asyncHandler(async (req, res) => {
   const { userId, title, body } = req.body;
-  const userNotification = await Notification.findOne({ userId });
+  const userNotification = await Notification.findOne({ userId: new mongoose.Types.ObjectId(userId) });
     
   if (!userNotification || !userNotification.fcmToken) {
     throw new Error('Không tìm thấy fcmToken cho userId này');
@@ -33,7 +33,7 @@ const sendFirebaseNotification = asyncHandler(async (req, res) => {
   console.log({ savedDetail });
 
   // Cập nhật hoặc tạo mới thông báo
-  let notification = await Notification.findOne({ userId });
+  let notification = await Notification.findOne({ userId:  new mongoose.Types.ObjectId(userId) });
 
   if (notification) {
     // Nếu đã có bản ghi, cập nhật danh sách notificationDetails
@@ -66,7 +66,7 @@ const addNotificationToken = asyncHandler(async (req, res) => {
   }
 
   // Tạo mới hoặc cập nhật token
-  let notification = await Notification.findOne({ userId });
+  let notification = await Notification.findOne({ userId:  new mongoose.Types.ObjectId(userId) });
 
   if (notification) {
     // Cập nhật token nếu đã tồn tại

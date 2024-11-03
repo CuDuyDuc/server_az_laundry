@@ -225,7 +225,7 @@ const getUserById= asyncHandle(async (req, res) => {
 
 const handleLoginWithGoogle = asyncHandle(async(req, res) => {
     const userInfo = req.body;
-
+    let newUser;
     const defaultRole = await RoleModel.findOne({ name_role: "user" });
     const existingUser = await UserModel.findOne({ email:userInfo.email }).populate('role_id');
     let user = {...userInfo}
@@ -241,7 +241,7 @@ const handleLoginWithGoogle = asyncHandle(async(req, res) => {
                 });
            }
         } else {
-            const newUser = new UserModel({
+            newUser = new UserModel({
                 fullname: userInfo.name,
                 email: userInfo.email,
                 role_id:defaultRole._id,
@@ -253,7 +253,7 @@ const handleLoginWithGoogle = asyncHandle(async(req, res) => {
         
         res.status(200).json({
             massage: 'Login with google successfully',
-            data: {...user, id: existingUser ? existingUser.id : user.id,role_id:defaultRole,fullname:existingUser?existingUser.fullname:user.fullname }, 
+            data: {...user, id: existingUser ? existingUser.id : user.id,role_id:defaultRole,fullname:existingUser?existingUser.fullname:newUser.fullname }, 
         })
 
     // Ở đây nó không lấy được id từ mongodb mà nó chỉ lấy được id của tài khoản gg vì vậy mình cần lấy thêm id khi người dùng 

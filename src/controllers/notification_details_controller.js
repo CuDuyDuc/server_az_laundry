@@ -6,7 +6,7 @@ const getNotificationDetailsByUserId = asyncHandler(async (req, res) => {
   const { userId } = req.query;
 
   // Tìm notification dựa trên userId
-  const notification = await Notification.findOne({ userId }).populate('notificationDetails');
+  const notification = await Notification.findOne({ userId:  new mongoose.Types.ObjectId(userId) }).populate('notificationDetails');
 
   if (!notification) {
     return res.status(404).json({
@@ -28,7 +28,7 @@ const deleteNotificationDetailById = asyncHandler(async (req, res) => {
 console.log({userId: userId, notificationDetailsId: notificationDetailsId});
 
   // Tìm notification theo userId
-  const notification = await Notification.findOne({ userId });
+  const notification = await Notification.findOne({ userId:  new mongoose.Types.ObjectId(userId) });
 
   if (!notification) {
     return res.status(404).json({
@@ -63,7 +63,7 @@ const getUnreadNotificationCount = asyncHandler(async (req, res) => {
   const { userId } = req.query;
 
   // Tìm thông báo dựa trên userId và kiểm tra xem có thông báo nào chưa đọc không
-  const notification = await Notification.findOne({ userId }).populate({
+  const notification = await Notification.findOne({ userId:  new mongoose.Types.ObjectId(userId) }).populate({
     path: 'notificationDetails',
     match: { notiStatus: 'unread' }  // Chỉ lấy các thông báo có status là "unread"
   });
@@ -91,7 +91,7 @@ const markNotificationAsRead = asyncHandler(async (req, res) => {
 
   // Tìm và cập nhật trạng thái thông báo thành "read" dựa trên userId và notificationDetailsId
   const updatedNotification = await NotificationDetailsModel.findOneAndUpdate(
-    { _id: notificationDetailsId, userId: userId },
+    { _id: notificationDetailsId, userId:  new mongoose.Types.ObjectId(userId) },
     { notiStatus: 'read' },
     { new: true } 
   );

@@ -3,7 +3,8 @@ var admin = require("firebase-admin");
 var serviceAccount = require("../../adminFirebaseSDK.json");
 
 admin.initializeApp({
-  credential: admin.credential.cert(serviceAccount)
+  credential: admin.credential.cert(serviceAccount),
+    storageBucket: "az-laundry.appspot.com"
 });
 
 const firebaseConfig = {
