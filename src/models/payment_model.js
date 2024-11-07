@@ -39,11 +39,11 @@ const PaymentSchame = new mongoose.Schema({
         enum: ['Pending', 'Paid', 'Failed',"COD"],
         default: 'Pending'
     },
-    confirmationStatus: {  
+    confirmationStatus: [{  
         type: String,
-        enum: ['PendingConfirmation', 'AwaitingPickup', 'Completed'],
-        default: 'PendingConfirmation'
-    }
+        enum: ['Chờ duyệt', 'Đang giặt', 'Đang giao', 'Hoàn thành', 'Đã hủy'],
+        default: 'Chờ duyệt'
+    }]
 },{timestamps: true})
 
 const PaymentModel = mongoose.model('payment', PaymentSchame);
