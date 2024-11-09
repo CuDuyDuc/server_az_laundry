@@ -1,12 +1,11 @@
 const Notification = require('../models/notification_model');
 const asyncHandler = require('express-async-handler');
 const NotificationDetailsModel = require('../models/notification_details_model');
-const { default: mongoose } = require("mongoose"); 
 const getNotificationDetailsByUserId = asyncHandler(async (req, res) => {
   const { userId } = req.query;
 
   // Tìm notification dựa trên userId
-  const notification = await Notification.findOne({userId: new mongoose.Types.ObjectId(userId)}).populate('notificationDetails');
+  const notification = await Notification.findOne({ userId }).populate('notificationDetails');
 
   if (!notification) {
     return res.status(404).json({
