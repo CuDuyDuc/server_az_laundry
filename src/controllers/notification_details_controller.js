@@ -1,7 +1,7 @@
 const Notification = require('../models/notification_model');
 const asyncHandler = require('express-async-handler');
 const NotificationDetailsModel = require('../models/notification_details_model');
-
+const { default: mongoose } = require("mongoose"); 
 const getNotificationDetailsByUserId = asyncHandler(async (req, res) => {
   const { userId } = req.query;
 

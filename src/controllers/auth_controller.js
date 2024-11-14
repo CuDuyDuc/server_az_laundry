@@ -253,7 +253,7 @@ const handleLoginWithGoogle = asyncHandle(async(req, res) => {
         
         res.status(200).json({
             massage: 'Login with google successfully',
-            data: {...user, id: existingUser ? existingUser.id : user.id,role_id:defaultRole,fullname:existingUser?existingUser.fullname:newUser.fullname }, 
+            data: {...user, id: existingUser ? existingUser.id : newUser._id,role_id:defaultRole,fullname:existingUser?existingUser.fullname:newUser.fullname }, 
         })
 
     // Ở đây nó không lấy được id từ mongodb mà nó chỉ lấy được id của tài khoản gg vì vậy mình cần lấy thêm id khi người dùng 
