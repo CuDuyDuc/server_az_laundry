@@ -74,6 +74,9 @@ const UserSchema = new mongoose.Schema({
         type: mongoose.Schema.Types.ObjectId,
         ref: "role",
     },
+    device_token: {
+        type: String,
+    },
 }, {
     timestamps: true
 });

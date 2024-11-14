@@ -500,6 +500,22 @@ const findUserId = asyncHandle(async (req, res) => {
       res.status(500).json(error);
     }
   });
+
+const updateDeviceToken=asyncHandle(async(req,res)=>{
+    const {id}=req.params;
+        const {device_token} = req.body;
+        const result = await UserModel.findByIdAndUpdate(id,{device_token:device_token});
+        if(result){
+            res.json({
+                "status": 200,
+                "messenger": "update device token",
+                "data": result
+            })
+        }else{
+            res.status(401);
+            throw new Error("Lỗi")
+        }
+})
 module.exports = {
     register,
     login,
@@ -512,5 +528,6 @@ module.exports = {
     getShops,
     getUserById,
     getShopsByProductType, 
-    findUserId
+    findUserId, 
+    updateDeviceToken,
 }
