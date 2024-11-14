@@ -36,7 +36,22 @@ const addCart = asyncHandle(async (req, res) => {
 });
 const getDataCart = asyncHandle(async (req, res) => {
     const {  id_user } = req.query; 
-    const data = await CartModel.find({id_user:id_user,status:"Pending"}).populate("id_product").populate("id_user");
+    const data = await CartModel.find({id_user:id_user,status:"Pending"}).populate({
+        path: "id_product",
+        populate: {
+            path: "id_user", // Populate user details within the product
+        },
+    })
+    .populate({
+        path: "id_product",
+        populate: {
+            path: "id_product_type", // Populate product type within the product
+            populate: {
+                path: "id_service_type", // Populate service type within the product type
+            },
+        },
+    })
+    .populate("id_user");
     if (data) {
         res.status(200).json({
             "data": data
