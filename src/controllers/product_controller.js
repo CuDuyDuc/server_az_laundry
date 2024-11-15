@@ -61,7 +61,7 @@ const getProductByIdUser= asyncHandler(async(req,res)=>{
                     path: 'id_service_type',
                     model: 'service_type' 
                 }
-            })
+            }).populate('id_user')
             .sort({ 'id_product_type.id_service_type': 1 }) 
             .exec();
 
