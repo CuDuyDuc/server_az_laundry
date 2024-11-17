@@ -11,6 +11,7 @@ const ProductModel = require("../models/product_model");
 const { default: axios } = require("axios");
 initializeApp(firebaseConfig)
 const storage = getStorage()
+require('dotenv').config();
 
 const transporter = nodemailer.createTransport({
     host: "smtp.gmail.com",
