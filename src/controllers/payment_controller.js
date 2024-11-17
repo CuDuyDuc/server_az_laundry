@@ -217,5 +217,28 @@ const updateConfirmationStatus = asyncHandle(async (req, res) => {
     }
 });
 
+const getPendingOrders = asyncHandle(async (req, res) => {
+    try {
+        const pendingOrders = await PaymentModel.find({ confirmationStatus: 'Chờ duyệt' })
+            .populate('id_user')
+            .populate({
+                path: 'id_cart',
+                populate: {
+                    path: 'id_product',
+                },
+            });
 
-module.exports = { createPayment, handleVNPayReturn, getOrder, getOrderById, updateConfirmationStatus };
+        res.status(200).json({
+            message: "Lấy danh sách đơn hàng chờ duyệt thành công",
+            data: pendingOrders,
+        });
+    } catch (error) {
+        res.status(500).json({
+            message: "Có lỗi xảy ra khi lấy danh sách đơn hàng chờ duyệt",
+            error: error.message,
+        });
+    }
+});
+
+
+module.exports = { createPayment, handleVNPayReturn, getOrder, getOrderById, updateConfirmationStatus, getPendingOrders };
