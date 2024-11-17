@@ -15,6 +15,7 @@ const CartRouter = require("./src/routers/cart_route")
 const chatRouter = require("./src/routers/chat_router")
 const MessageRouter = require("./src/routers/message_router")
 const PaymentRouter = require("./src/routers/payment_router")
+const ReviewRouter = require("./src/routers/review_router")
 
 
 const app = express()
@@ -36,6 +37,7 @@ app.use('/api/cart',CartRouter);
 app.use("/api/chats", chatRouter);
 app.use("/api/messages", MessageRouter);
 app.use("/api/payment", PaymentRouter);
+app.use("/api/review", ReviewRouter)
 
 createAdminIfNotExists();
 
