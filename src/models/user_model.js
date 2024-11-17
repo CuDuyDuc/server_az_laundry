@@ -27,6 +27,26 @@ const UserSchema = new mongoose.Schema({
     address: {
         type: String,
     },
+    list_addresses: [{
+        full_name:{
+            type:String
+        },
+        address:{
+            type:String
+        },
+        phone_number:{
+            type:String
+        },
+        location: {
+            type: {
+                type: String, 
+                enum: ['Point'], 
+            },
+            coordinates: {
+                type: [Number], 
+            },
+        },
+    }],
     data_user: {
         shop_name: {
             type: String,
@@ -81,6 +101,7 @@ const UserSchema = new mongoose.Schema({
     timestamps: true
 });
 UserSchema.index({ location: '2dsphere' });
+// UserSchema.index({ "list_addresses.location": '2dsphere' }, { name: 'list_addresses_location_2dsphere' });
 const UserModel = mongoose.model('user', UserSchema);
 
 module.exports = UserModel;
