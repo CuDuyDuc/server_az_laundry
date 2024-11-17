@@ -8,6 +8,7 @@ const { initializeApp } = require("firebase/app");
 const { getDownloadURL, getStorage, ref, uploadBytesResumable } = require('firebase/storage');
 const firebaseConfig = require("../configs/firebase.config");
 const ProductModel = require("../models/product_model");
+const { default: axios } = require("axios");
 initializeApp(firebaseConfig)
 const storage = getStorage()
 
@@ -500,6 +501,91 @@ const findUserId = asyncHandle(async (req, res) => {
       res.status(500).json(error);
     }
   });
+const addAddressByIdUser = asyncHandle(async(req,res)=>{
+    const {id_user, address,addToStart,longitude,latitude,full_name,phone_number }= req.body
+    
+    const user = await UserModel.findById({_id:id_user});
+    if (!user) {
+        return res.status(404).json({ error: 'Không tìm thấy người dùng.' });
+    }
+    try {
+        let newLocation ={}
+        if (!address && latitude && longitude) {
+            const openCageUrl = `https://api.opencagedata.com/geocode/v1/json?q=${latitude}+${longitude}&key=${process.env.API_KEY_MAP}`;
+            const response = await axios.get(openCageUrl);
+            if(response){
+                newLocation = {
+                    full_name:user.fullname,
+                    phone_number:user.phone_number??phone_number,
+                    address: response.data.results[0].formatted,
+                    location: {
+                        type: 'Point',
+                        coordinates: [longitude, latitude] 
+                    }
+                };
+            }
+            
+        }else{
+            const openCageUrl = `https://api.opencagedata.com/geocode/v1/json?q=${encodeURIComponent(address)}&key=${process.env.API_KEY_MAP}`;
+            const response = await axios.get(openCageUrl);
+            
+            if(response){
+                if (response.data.results?.length>0) {
+                    console.log('dsa');
+                    
+                    const location = response?.data?.results[0]?.geometry;
+                    newLocation = {
+                        full_name:full_name,
+                        address: address,
+                        phone_number:phone_number,
+                        location: {
+                            type: 'Point',
+                            coordinates: [location.lat, location.lng] 
+                        }
+                    };
+                  } else {
+                    return res.status(404).json({ message: "Không tìm thấy địa chỉ." });
+                  }
+                
+            }
+        }
+        if (addToStart) {
+            if (user.list_addresses.length > 0) {
+                user.list_addresses[0] = newLocation; 
+            } else {
+                user.list_addresses.push(newLocation);
+            }
+        } else {
+            user.list_addresses.push(newLocation);
+        }
+        await user.save();
+        res.status(200).json({
+            list_addresses: user
+        });
+    } catch (error) {
+        console.log(error);
+        
+    }
+})
+
+const deleteListAddresses = asyncHandle(async(req,res)=>{
+    const {idUser, idListAddresses}= req.params
+    const result = await UserModel.updateOne(
+        { _id: idUser }, 
+        { $pull: { list_addresses: { _id: idListAddresses} } } 
+    )
+    if (result.modifiedCount > 0) {
+        return res.status(200).json({
+            message: "Xóa thành công",
+        });
+    } else {
+        return res.status(404).json({
+            message: "Xóa thất bại. Kiểm tra lại idUser hoặc idListAddresses.",
+        });
+    }
+})
+
+
 
 const updateDeviceToken=asyncHandle(async(req,res)=>{
     const {id}=req.params;
@@ -530,4 +616,6 @@ module.exports = {
     getShopsByProductType, 
     findUserId, 
     updateDeviceToken,
+    addAddressByIdUser,
+    deleteListAddresses
 }
