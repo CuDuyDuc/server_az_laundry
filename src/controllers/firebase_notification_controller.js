@@ -1,88 +1,53 @@
 const NotificationService = require("../services/NotificationService");
 const Notification = require("../models/notification_model");
-const NotificationDetailsModel = require("../models/notification_details_model");
+const User = require("../models/user_model"); 
 const asyncHandler = require("express-async-handler");
-const { default : mongoose} = require('mongoose');
+const { default: mongoose } = require('mongoose');
+
 const sendFirebaseNotification = asyncHandler(async (req, res) => {
-  const { userId, title, body } = req.body;
-  const userNotification = await Notification.findOne({ userId: new mongoose.Types.ObjectId(userId) });
-    
-  if (!userNotification || !userNotification.fcmToken) {
-    throw new Error('Không tìm thấy fcmToken cho userId này');
-  }
-  const fcmToken = userNotification.fcmToken;
+  const { userId, sender, title, body, shortDescription, notification_type, object_type_id } = req.body;
 
-  console.log({ userId, title, body, fcmToken });
-
-  const result = await NotificationService.sendNotification(
-    fcmToken,
+  // Tạo một bản ghi thông báo mới trong MongoDB
+  const newNotification = new Notification({
+    recipient: userId,
+    sender,
+    notification_type,
     title,
-    body
-  );
-  console.log({ result });
-
-  const newNotificationDetail = new NotificationDetailsModel({
-    userId,
-    title,
-    message: body,
-    imageUrl: "",
-    notiStatus: "unread",
+    body,
+    object_type_id,
+    shortDescription,
+    status: "unread",
   });
 
-  const savedDetail = await newNotificationDetail.save();
-  console.log({ savedDetail });
+  // Lưu thông báo vào cơ sở dữ liệu
+  await newNotification.save();
 
-  // Cập nhật hoặc tạo mới thông báo
-  let notification = await Notification.findOne({ userId:  new mongoose.Types.ObjectId(userId) });
+  // Tìm fcmToken của người nhận trong User model
+  const recipientUser = await User.findById(userId);
+  console.log(recipientUser);
+  
+  // Gửi thông báo qua Firebase nếu user có fcmToken
+  if (recipientUser && recipientUser.device_token) {
+    try {
+      console.log({ userId, sender, title, body, deviceToken: recipientUser.device_token });
 
-  if (notification) {
-    // Nếu đã có bản ghi, cập nhật danh sách notificationDetails
-    notification.notificationDetails.push(savedDetail._id);
+      // Gửi thông báo qua Firebase với deviceToken
+      const result = await NotificationService.sendNotification(
+        recipientUser.device_token,
+        title,
+        body
+      );
+      console.log({ result });
+
+      res.status(200).json({ message: "Notification sent successfully via Firebase and saved in DB", success: true });
+    } catch (error) {
+      console.error("Failed to send Firebase notification:", error);
+      res.status(500).json({ message: "Notification saved in DB, but failed to send Firebase notification.", success: false });
+    }
   } else {
-    // Tạo mới nếu chưa có bản ghi cho user
-    notification = new Notification({
-      userId,
-      fcmToken: deviceToken,
-      notificationDetails: [savedDetail._id], // Thêm thông tin chi tiết
-    });
+    console.warn(`User ${userId} does not have an fcmToken, skipping Firebase notification.`);
+    res.status(200).json({ message: "Notification saved in DB, but Firebase notification was not sent (no fcmToken).", success: true });
   }
-
-  // Lưu cập nhật vào DB
-  await notification.save();
-
-  res
-    .status(200)
-    .json({ message: "Notification sent successfully", success: true });
 });
 
-const addNotificationToken = asyncHandler(async (req, res) => {
-  const { userId, fcmToken } = req.body;
-
-  if (!userId || !fcmToken) {
-    return res.status(400).json({
-      status: 400,
-      message: "Thiếu thông tin userId hoặc fcmToken",
-    });
-  }
-
-  // Tạo mới hoặc cập nhật token
-  let notification = await Notification.findOne({ userId:  new mongoose.Types.ObjectId(userId) });
-
-  if (notification) {
-    // Cập nhật token nếu đã tồn tại
-    notification.fcmToken = fcmToken;
-    await notification.save();
-  } else {
-    // Tạo mới nếu chưa tồn tại
-    notification = new Notification({ userId, fcmToken });
-    await notification.save();
-  }
-
-  res.json({
-    status: 200,
-    message: "FCM Token đã được thêm thành công",
-    data: notification,
-  });
-});
-
-module.exports = { addNotificationToken, sendFirebaseNotification };
+module.exports = { sendFirebaseNotification };
