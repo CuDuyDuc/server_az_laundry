@@ -23,25 +23,29 @@ function sortObject(obj) {
 }
 
 const createPayment = asyncHandle(async (req, res) => {
-    const { id_user, paymentMethod, data_payment, id_product } = req.body;
-    const { shipping_fee, discount, taxes, total, shipping_date, delivery_date } = data_payment;
+    const { id_user, paymentMethod, data_payment , id_product, full_name,number_phone,address} = req.body;
+    const { shipping_fee, discount, taxes, total, shipping_date, delivery_date,product_condition,shipping_mode,note } = data_payment;
+    console.log(shipping_date)
     let id_cart = null;
-    const carts = await CartModel.find({ id_user: id_user, status: 'Pending' }).populate('id_product');
+    const carts = await CartModel.find({ id_user: id_user,status:'Pending' }).populate('id_product');
     if (carts.length === 0) {
         return res.status(200).json({ message: "Không tìm thấy giỏ hàng, không thể thanh toán" });
     }
     if (!id_product) {
         id_cart = carts.map(cart => cart._id);
     }
-
+    
     const amount_money = total + (shipping_fee || 0) - (discount || 0) + (taxes || 0);
 
     const payment = new PaymentModel({
         id_user,
         id_cart: id_cart,
-        amount_money: amount_money,
-        id_product: id_product || null,
-        method_payment: paymentMethod,
+        mount_money: amount_money,
+        id_product:id_product||null,
+        method_payment:paymentMethod,
+        full_name,
+        number_phone,
+        address,
         status: 'Pending',
         data_payment: {
             shipping_fee: shipping_fee || 0,
@@ -49,7 +53,10 @@ const createPayment = asyncHandle(async (req, res) => {
             taxes: taxes || 0,
             total: total,
             shipping_date: shipping_date,
-            delivery_date: delivery_date
+            delivery_date: delivery_date,
+            product_condition:product_condition,
+            shipping_mode:shipping_mode,
+            note:note
         }
     });
 
@@ -61,7 +68,7 @@ const createPayment = asyncHandle(async (req, res) => {
                 req.connection.remoteAddress ||
                 req.socket.remoteAddress ||
                 req.connection.socket.remoteAddress;
-
+            
             const vnpUrl = "https://sandbox.vnpayment.vn/paymentv2/vpcpay.html";
             const vnp_TmnCode = "9KDMIQHJ";
             const vnp_HashSecret = process.env.vnp_HashSecret;
@@ -91,13 +98,13 @@ const createPayment = asyncHandle(async (req, res) => {
             const paymentUrl = `${vnpUrl}?${querystring.stringify(sortedParams, { encode: false })}`;
             return res.status(200).json({ success: true, paymentUrl });
         } else {
-            if (findIdUser.status === "Pending") {
+            if(findIdUser.status==="Pending"){
                 await PaymentModel.findByIdAndUpdate(payment._id, { status: "COD" });
                 const carts = await CartModel.updateMany(
                     { id_user: findIdUser.id_user._id, status: "Pending" },
                     { $set: { status: "COD" } }
                 );
-                if (carts) {
+                if(carts){
                     return res.status(200).json({ data: payment, message: "Thanh toán thành công" });
                 }
             }
@@ -123,12 +130,12 @@ const handleVNPayReturn = asyncHandle(async (req, res) => {
         const paymentStatus = vnp_Params.vnp_ResponseCode === "00" ? "Paid" : "Failed";
         await PaymentModel.findByIdAndUpdate(orderId, { status: paymentStatus });
         const findIdUser = await PaymentModel.findById(orderId).populate('id_user')
-        if (findIdUser.status === "Paid") {
+        if(findIdUser.status==="Paid"){
             const carts = await CartModel.updateMany(
                 { id_user: findIdUser.id_user._id, status: "Pending" },
                 { $set: { status: "Paid" } }
             );
-            if (carts) {
+            if(carts && findIdUser.status==='Paid'){
                 return res.status(200).json({ success: true, message: "Thanh toán thành công" });
             }
         }
@@ -137,7 +144,6 @@ const handleVNPayReturn = asyncHandle(async (req, res) => {
         return res.status(400).json({ success: false, message: "Xác thực thất bại" });
     }
 });
-
 const getOrder = asyncHandle(async (req, res) => {
     try {
         const orders = await PaymentModel.find()
@@ -217,5 +223,28 @@ const updateConfirmationStatus = asyncHandle(async (req, res) => {
     }
 });
 
+const getPendingOrders = asyncHandle(async (req, res) => {
+    try {
+        const pendingOrders = await PaymentModel.find({ confirmationStatus: 'Chờ duyệt' })
+            .populate('id_user')
+            .populate({
+                path: 'id_cart',
+                populate: {
+                    path: 'id_product',
+                },
+            });
 
-module.exports = { createPayment, handleVNPayReturn, getOrder, getOrderById, updateConfirmationStatus };
+        res.status(200).json({
+            message: "Lấy danh sách đơn hàng chờ duyệt thành công",
+            data: pendingOrders,
+        });
+    } catch (error) {
+        res.status(500).json({
+            message: "Có lỗi xảy ra khi lấy danh sách đơn hàng chờ duyệt",
+            error: error.message,
+        });
+    }
+});
+
+
+module.exports = { createPayment, handleVNPayReturn, getOrder, getOrderById, updateConfirmationStatus, getPendingOrders };

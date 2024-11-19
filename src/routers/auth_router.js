@@ -1,5 +1,5 @@
 const Router = require('express');
-const { register, login, verification, forgotPassword, getUserData, handleLoginWithGoogle, createUser, getShops, getUserById, getShopsByProductType, findUserId, updateDeviceToken, updateInfo, changePassword } = require('../controllers/auth_controller');
+const { register, login, verification, forgotPassword, getUserData, handleLoginWithGoogle, createUser, getShops, getUserById, getShopsByProductType, findUserId, updateDeviceToken , addAddressByIdUser, deleteListAddresses, updateInfo, changePassword} = require('../controllers/auth_controller');
 const multer = require('multer');
 
 const AuthRouter = Router();
@@ -24,6 +24,9 @@ AuthRouter.get('/find-user/:userId',findUserId)
 AuthRouter.put('/update-device-token/:id', updateDeviceToken)
 AuthRouter.put('/update-info', updateInfo)
 AuthRouter.put('/change-password', changePassword)
-
+AuthRouter.post('/get-shop-by-product-type',getShopsByProductType)
+AuthRouter.get('/find-user/:userId',findUserId)
+AuthRouter.post('/add-address-by-id-user',addAddressByIdUser),
+AuthRouter.delete('/delete-list-addresses/:idUser/:idListAddresses',deleteListAddresses)
 
 module.exports = AuthRouter;
