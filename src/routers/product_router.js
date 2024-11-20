@@ -9,4 +9,4 @@ ProductRouter.post('/getProduct', getProduct);
 ProductRouter.get('/get-product-by-id', getProductByIdUser);
 ProductRouter.get('/get-product-by-user/:id_user/and-product/:id_product_type', getProductsByIdUserAndIdProductType);
 
-module.exports = ProductRouter;
+module.exports = ProductRouter; 
