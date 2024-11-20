@@ -521,7 +521,7 @@ const addAddressByIdUser = asyncHandle(async(req,res)=>{
                     address: response.data.results[0].formatted,
                     location: {
                         type: 'Point',
-                        coordinates: [longitude, latitude] 
+                        coordinates: [latitude, longitude] 
                     }
                 };
             }
