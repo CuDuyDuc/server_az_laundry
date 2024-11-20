@@ -223,9 +223,35 @@ const updateConfirmationStatus = asyncHandle(async (req, res) => {
     }
 });
 
-const getPendingOrders = asyncHandle(async (req, res) => {
+// const getPendingOrders = asyncHandle(async (req, res) => {
+//     try {
+//         const pendingOrders = await PaymentModel.find({ confirmationStatus: 'Chờ duyệt' })
+//             .populate('id_user')
+//             .populate({
+//                 path: 'id_cart',
+//                 populate: {
+//                     path: 'id_product',
+//                 },
+//             });
+
+//         res.status(200).json({
+//             message: "Lấy danh sách đơn hàng chờ duyệt thành công",
+//             data: pendingOrders,
+//         });
+//     } catch (error) {
+//         res.status(500).json({
+//             message: "Có lỗi xảy ra khi lấy danh sách đơn hàng chờ duyệt",
+//             error: error.message,
+//         });
+//     }
+// });
+
+const getOrdersByStatus = asyncHandle(async (req, res) => {
     try {
-        const pendingOrders = await PaymentModel.find({ confirmationStatus: 'Chờ duyệt' })
+        const { status } = req.query; // Lấy trạng thái từ query string
+        const filter = status ? { confirmationStatus: status } : {}; // Nếu không có status, lấy tất cả
+
+        const orders = await PaymentModel.find(filter)
             .populate('id_user')
             .populate({
                 path: 'id_cart',
@@ -235,16 +261,17 @@ const getPendingOrders = asyncHandle(async (req, res) => {
             });
 
         res.status(200).json({
-            message: "Lấy danh sách đơn hàng chờ duyệt thành công",
-            data: pendingOrders,
+            message: "Lấy danh sách đơn hàng thành công",
+            data: orders,
         });
     } catch (error) {
         res.status(500).json({
-            message: "Có lỗi xảy ra khi lấy danh sách đơn hàng chờ duyệt",
+            message: "Có lỗi xảy ra khi lấy danh sách đơn hàng",
             error: error.message,
         });
     }
 });
 
 
-module.exports = { createPayment, handleVNPayReturn, getOrder, getOrderById, updateConfirmationStatus, getPendingOrders };
+
+module.exports = { createPayment, handleVNPayReturn, getOrder, getOrderById, updateConfirmationStatus, getOrdersByStatus };

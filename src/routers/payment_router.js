@@ -1,5 +1,5 @@
 const Router = require('express');
-const { createPayment, handleVNPayReturn, getOrder, getOrderById, updateConfirmationStatus, getPendingOrders } = require('../controllers/payment_controller');
+const { createPayment, handleVNPayReturn, getOrder, getOrderById, updateConfirmationStatus, getOrdersByStatus } = require('../controllers/payment_controller');
 
 const PaymentRouter = Router();
 
@@ -8,6 +8,6 @@ PaymentRouter.get('/vnpay_return', handleVNPayReturn)
 PaymentRouter.get('/get-order', getOrder)
 PaymentRouter.get('/get-order-by-id/:_id', getOrderById)
 PaymentRouter.post('/update-confirmation-status', updateConfirmationStatus)
-PaymentRouter.get('/get-pending-orders', getPendingOrders)
+PaymentRouter.get('/get-orders-by-status', getOrdersByStatus);
 
 module.exports = PaymentRouter;
