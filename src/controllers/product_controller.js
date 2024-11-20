@@ -4,7 +4,7 @@ const { getDownloadURL, getStorage, ref, uploadBytesResumable } = require('fireb
 const firebaseConfig = require("../configs/firebase.config");
 const ProductModel = require('../models/product_model');
 initializeApp(firebaseConfig)
-const storage = getStorage()
+const storage = getStorage(undefined,"gs://az-laundry.appspot.com")
 
 const addProduct = asyncHandler(async (req, res) => {
     if (!req.files || req.files.length === 0) {
