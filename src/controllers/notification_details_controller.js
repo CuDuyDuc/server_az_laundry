@@ -10,8 +10,7 @@ const getNotificationsByUserId = asyncHandler(async (req, res) => {
   .sort({ createdAt: -1 });
 
   if (!notifications || notifications.length === 0) {
-    return res.status(404).json({
-      status: 404,
+    return res.json({
       message: 'Không tìm thấy thông báo cho userId này',
     });
   }

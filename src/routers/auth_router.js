@@ -1,5 +1,5 @@
 const Router = require('express');
-const { register, login, verification, forgotPassword, getUserData, handleLoginWithGoogle, createUser, getShops, getUserById, getShopsByProductType, findUserId, updateDeviceToken , addAddressByIdUser, deleteListAddresses, updateInfo, changePassword} = require('../controllers/auth_controller');
+const { register, login, verification, forgotPassword, getUserData, handleLoginWithGoogle, createUser, getShops, getUserById, getShopsByProductType, findUserId, updateDeviceToken , addAddressByIdUser, deleteListAddresses, updateInfo, changePassword } = require('../controllers/auth_controller');
 const multer = require('multer');
 
 const AuthRouter = Router();
