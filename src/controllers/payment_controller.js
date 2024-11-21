@@ -96,7 +96,7 @@ const createPayment = asyncHandle(async (req, res) => {
             let signed = hmac.update(Buffer.from(signData, 'utf-8')).digest("hex");
             sortedParams['vnp_SecureHash'] = signed;
             const paymentUrl = `${vnpUrl}?${querystring.stringify(sortedParams, { encode: false })}`;
-            return res.status(200).json({ success: true, paymentUrl });
+            return res.status(200).json({ success: true, paymentUrl, orderId });
         } else {
             if(findIdUser.status==="Pending"){
                 await PaymentModel.findByIdAndUpdate(payment._id, { status: "COD" });

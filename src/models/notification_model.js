@@ -1,53 +1,51 @@
 const { default: mongoose } = require("mongoose");
 
-
-const Notification_Schame = new mongoose.Schema({
-  userId: {
+const NotificationSchema = new mongoose.Schema({
+  recipient: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'user',
     required: true,
   },
-  fcmToken: {
+  sender: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'user',
+  },
+  notification_type: {
     type: String,
+    enum: ['order_update', 'promotion', 'reminder', 'product'], 
     required: true,
   },
-  notificationDetails: [
-    {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'notification_details', // Tham chiếu đến NotificationDetails
-    },
-  ],
+  title: {
+    type: String,
+    default: null,
+  },
+  body: {
+    type: String,
+    default: null,
+  },
+  object_type_id: {
+    type: String,
+    default: null, 
+  },
+  status: {
+    type: String,
+    enum: ['unread', 'read'],
+    default: 'unread',
+  },
+  shortDescription: {  
+    type: String,
+    default: null,
+  },
+  createdAt: {
+    type: Date,
+    default: Date.now,
+  },
+  updatedAt: {
+    type: Date,
+    default: Date.now,
+  },
 });
 
-
-const NotificationModel = mongoose.model('notification', Notification_Schame);
-
+const NotificationModel = mongoose.model('notification', NotificationSchema);
 module.exports = NotificationModel;
 
-
-// DATA STRUCT
-// {
-//   "notifications": {
-//     "userID_123": {
-//       "fcmToken": "fcm_token_abc",
-//       "notificationDetails": [
-//         {
-//           "id": "notif_001",
-//           "title": "Bạn có 1 đơn hàng mới",
-//           "body": "Đơn hàng của bạn đã được xác nhận",
-//           "imageURL": "https://image-url.png",
-//           "timestamp": "2024-10-04T10:00:00Z",
-//           "status": "unread"
-//         },
-//         {
-//           "id": "notif_002",
-//           "title": "Giao hàng thành công",
-//           "body": "Đơn hàng đã được giao đến bạn",
-//           "imageURL": "https://image-url2.png",
-//           "timestamp": "2024-10-04T12:00:00Z",
-//           "status": "read"
-//         }
-//       ]
-//     }
-//   }
-// }

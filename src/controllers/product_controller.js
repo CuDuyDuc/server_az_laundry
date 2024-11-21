@@ -10,6 +10,9 @@ const addProduct = asyncHandler(async (req, res) => {
     if (!req.files || req.files.length === 0) {
         return res.status(400).send('No files were uploaded.');
     }
+    console.log(req.files);
+    console.log(req.body);
+    
     const downloadURLs = []; 
     for (const file of req.files) {
         const storageRef = ref(storage, `products/${file.originalname}`);

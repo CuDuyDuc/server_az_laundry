@@ -603,6 +603,65 @@ const updateDeviceToken=asyncHandle(async(req,res)=>{
             throw new Error("Lỗi")
         }
 })
+
+const changePassword = asyncHandle(async (req, res) => {
+    const { userId, oldPassword, newPassword } = req.body;
+
+    // Lấy người dùng và mật khẩu hiện tại
+    const user = await UserModel.findById(userId, "password");
+    if (!user) {
+        return res.status(404).json({ message: "User not found!" });
+    }
+
+    // Kiểm tra nếu người dùng không có mật khẩu (Google/Facebook)
+    if (!user.password) {
+        return res.status(400).json({
+            message: "Cannot change password for accounts created with Google or Facebook.",
+        });
+    }
+
+    // Kiểm tra mật khẩu hiện tại
+    const isMatchPassword = await bcryp.compare(oldPassword, user.password);
+    if (!isMatchPassword) {
+        return res.status(401).json({ message: "Mật khẩu cũ không đúng!" });
+    }
+
+    // Cập nhật mật khẩu mới
+    const hashedPassword = await bcryp.hash(newPassword, 10);
+    await UserModel.findByIdAndUpdate(userId, { password: hashedPassword });
+
+    res.status(200).json({ message: "Password changed successfully" });
+});
+
+
+const updateInfo = asyncHandle(async (req, res) => {
+    const { userId, phone_number, address, fullname } = req.body;
+
+    // Tạo đối tượng chỉ chứa các trường cần cập nhật
+    const updateData = {};
+    if (phone_number) updateData.phone_number = phone_number;
+    if (address) updateData.address = address;
+    if (fullname) updateData.fullname = fullname;
+
+    // Cập nhật thông tin người dùng
+    const updatedUser = await UserModel.findByIdAndUpdate(
+        userId,
+        updateData,
+        { new: true, fields: "phone_number address fullname" } 
+    );
+
+    if (!updatedUser) {
+        return res.status(404).json({ message: "User not found!" });
+    }
+
+    res.status(200).json({
+        status: 200,
+        message: "User information updated successfully",
+        data: updatedUser,
+    });
+});
+
+
 module.exports = {
     register,
     login,
@@ -618,5 +677,7 @@ module.exports = {
     findUserId, 
     updateDeviceToken,
     addAddressByIdUser,
-    deleteListAddresses
+    deleteListAddresses,
+    changePassword,
+    updateInfo
 }
