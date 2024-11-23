@@ -5,13 +5,13 @@ const jwt = require('jsonwebtoken');
 const nodemailer = require('nodemailer');
 const RoleModel = require("../models/role_model");
 const { initializeApp } = require("firebase/app");
-const { getDownloadURL, getStorage, ref, uploadBytesResumable } = require('firebase/storage');
+const { getDownloadURL, getStorage, ref, uploadBytesResumable, deleteObject } = require('firebase/storage');
 const firebaseConfig = require("../configs/firebase.config");
 const ProductModel = require("../models/product_model");
 const { default: axios } = require("axios");
 initializeApp(firebaseConfig)
-const storage = getStorage()
 require('dotenv').config();
+const storage = getStorage(undefined,"gs://az-laundry.appspot.com")
 
 const transporter = nodemailer.createTransport({
     host: "smtp.gmail.com",
@@ -233,7 +233,12 @@ const handleLoginWithGoogle = asyncHandle(async(req, res) => {
     let user = {...userInfo}
         if(existingUser) {
            if(existingUser.role_id.name_role==="user"){
-                await UserModel.findByIdAndUpdate(existingUser.id, {...userInfo, updatedAt: Date.now()})
+            const updatedUserInfo = {
+                ...userInfo,
+                photo: existingUser.photo || userInfo.photo, 
+                updatedAt: Date.now()
+            };
+                await UserModel.findByIdAndUpdate(existingUser.id, updatedUserInfo)
                 console.log('Update done')
                 user.accesstoken = await getJsonWebToken(userInfo.email, userInfo.id,)
            }else{
@@ -642,14 +647,50 @@ const updateInfo = asyncHandle(async (req, res) => {
     if (phone_number) updateData.phone_number = phone_number;
     if (address) updateData.address = address;
     if (fullname) updateData.fullname = fullname;
+    console.log(req.files);
+    console.log(req.body);
+        // Lấy thông tin người dùng để xử lý file cũ
+        const user = await UserModel.findById(userId);
+   // Nếu có file hình được upload
+   if (req.files) {
+         // Xóa file cũ trên Firebase nếu tồn tại
+         // Kiểm tra xem ảnh cũ có phải từ Firebase
+    if (user.photo.includes('firebasestorage.googleapis.com')) {
+        const photoPath = user.photo.split('/o/')[1].split('?')[0]; // Lấy path từ URL Firebase
+        const oldPhotoRef = ref(storage, decodeURIComponent(photoPath)); // Decode %2F thành /
+
+        try {
+            await deleteObject(oldPhotoRef);
+            console.log("Old photo deleted successfully");
+        } catch (error) {
+            console.error("Error deleting old photo:", error);
+        }
+    } else {
+        console.log("Old photo is not stored in Firebase, skipping delete.");
+    }
+    const file = req.files[0]; // Hình ảnh từ request
+    const storageRef = ref(storage, `users/${userId}_${file.originalname}`); // Định danh file theo userId
+    const metadata = { contentType: file.mimetype };
+
+    try {
+        const snapshot = await uploadBytesResumable(storageRef, file.buffer, metadata); // Upload lên Firebase
+        const downloadURL = await getDownloadURL(snapshot.ref); // Lấy URL tải xuống
+    console.log("Download URL:", downloadURL);
+        updateData.photo = downloadURL; // Lưu URL vào database
+    } catch (error) {
+        return res.status(500).json({ message: "Error uploading image", error });
+    }
+    }
 
     // Cập nhật thông tin người dùng
     const updatedUser = await UserModel.findByIdAndUpdate(
         userId,
         updateData,
-        { new: true, fields: "phone_number address fullname" } 
+        { new: true, fields: "phone_number address fullname photo" } 
     );
-
+    console.log("Uploaded file:", req.files);
+    console.log("Update data with photo:", updateData);
+    console.log("Updated user:", updatedUser);
     if (!updatedUser) {
         return res.status(404).json({ message: "User not found!" });
     }

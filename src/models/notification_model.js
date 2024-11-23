@@ -24,7 +24,7 @@ const NotificationSchema = new mongoose.Schema({
     default: null,
   },
   object_type_id: {
-    type: String,
+    type: mongoose.Schema.Types.ObjectId,
     default: null, 
   },
   status: {
