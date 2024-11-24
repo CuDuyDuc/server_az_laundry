@@ -8,12 +8,12 @@ const PaymentModel = require("../models/payment_model");
 const sendFirebaseNotification = asyncHandler(async (req, res) => {
   const { userId, sender, title, body, shortDescription, notification_type, object_type_id } = req.body;
 
-  let recipientUserId = null; // ID của người nhận
-  let recipientUser = null; // Thông tin chi tiết của người nhận
+  let recipientUserId = null;
+  let recipientUser = null;
 
   try {
-    if (notification_type === 'order_update') {
-      // Xác định recipient từ idPayment
+    if (notification_type === 'order_update' && !userId) {
+    
       const payment = await PaymentModel.findById(object_type_id).populate({
         path: 'id_cart',
         populate: { path: 'id_product', select: 'id_user' },
@@ -23,19 +23,19 @@ const sendFirebaseNotification = asyncHandler(async (req, res) => {
         return res.status(404).json({ message: 'Payment not found.', success: false });
       }
 
-      const cart = payment?.id_cart[0]; // Lấy cart đầu tiên (nếu có nhiều cart, cần xử lý thêm)
+      const cart = payment?.id_cart[0];
       const product = cart?.id_product;
 
       if (!product?.id_user) {
         return res.status(404).json({ message: 'Product or shop not found.', success: false });
       }
 
-      recipientUserId = product?.id_user; // ID của shop
+      recipientUserId = product?.id_user;
     } else {
-      recipientUserId = userId; // Trường hợp thông thường
+      recipientUserId = userId;
     }
 
-    // Tìm thông tin người nhận từ User model
+  
     recipientUser = await User.findById(recipientUserId);
 
     if (!recipientUser) {

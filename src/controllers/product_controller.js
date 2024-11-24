@@ -53,6 +53,27 @@ const getProduct = asyncHandler(async (_req, res) => {
     }
 })
 
+const getProductByIdProduct = asyncHandler(async (req, res) => {
+    const { idProduct } = req.query;
+
+    const data = await ProductModel.find({_id: idProduct})
+    .populate({
+        path: 'id_product_type', 
+        populate: { 
+            path: 'id_service_type',
+            model: 'service_type' 
+        }
+    });
+    if (data) {
+        res.status(200).json({
+            "messenger": "Thành công",
+            "data": data
+        })
+    } else {
+        res.status(401)
+        throw new Error("Lỗi data")
+    }
+})
 const getProductByIdUser= asyncHandler(async(req,res)=>{
     try {
         const { id_user } = req.query;
@@ -94,4 +115,4 @@ const getProductsByIdUserAndIdProductType = asyncHandler(async(req,res)=>{
 
 
 
-module.exports = {addProduct, getProduct,getProductByIdUser,getProductsByIdUserAndIdProductType}
+module.exports = {addProduct, getProduct,getProductByIdUser,getProductsByIdUserAndIdProductType, getProductByIdProduct}
