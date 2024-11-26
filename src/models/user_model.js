@@ -63,9 +63,12 @@ const UserSchema = new mongoose.Schema({
         },
         star_rating: {
             type: Number, 
+            default:0
         },
         order_count: {
             type: Number, 
+            default:0
+
         },
         store_evaluation:{
             comment:{
@@ -101,7 +104,7 @@ const UserSchema = new mongoose.Schema({
     timestamps: true
 });
 UserSchema.index({ location: '2dsphere' });
-// UserSchema.index({ "list_addresses.location": '2dsphere' }, { name: 'list_addresses_location_2dsphere' });
+
 const UserModel = mongoose.model('user', UserSchema);
 
 module.exports = UserModel;
