@@ -655,7 +655,7 @@ const updateInfo = asyncHandle(async (req, res) => {
    if (req.files) {
          // Xóa file cũ trên Firebase nếu tồn tại
          // Kiểm tra xem ảnh cũ có phải từ Firebase
-    if (user.photo.includes('firebasestorage.googleapis.com')) {
+    if (user?.photo?.includes('firebasestorage.googleapis.com')) {
         const photoPath = user.photo.split('/o/')[1].split('?')[0]; // Lấy path từ URL Firebase
         const oldPhotoRef = ref(storage, decodeURIComponent(photoPath)); // Decode %2F thành /
 
