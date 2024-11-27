@@ -134,6 +134,8 @@ const handleVNPayReturn = asyncHandle(async (req, res) => {
     if (secureHash === signed) {
         const orderId = vnp_Params.vnp_TxnRef;
         const paymentStatus = vnp_Params.vnp_ResponseCode === "00" ? "Paid" : "Failed";
+        console.log('status',paymentStatus);
+        
         await PaymentModel.findByIdAndUpdate(orderId, { status: paymentStatus });
         const findIdUser = await PaymentModel.findById(orderId).populate('id_user')
         if(findIdUser.status==="Paid"){

@@ -270,7 +270,6 @@ const createUser = asyncHandle(async (req, res) => {
     if (!req.files || !req.files.thumbnail || !req.files.shop_banner) {
         return res.status(400).json({ message: 'Both thumbnail and shop_banner images are required.' });
     }
-
     const thumbnailFile = req.files.thumbnail[0]; 
     const thumbnailRef = ref(storage, `shops/thumbnails/${thumbnailFile.originalname}`);
     const thumbnailMetadata = { contentType: thumbnailFile.mimetype };
@@ -283,18 +282,14 @@ const createUser = asyncHandle(async (req, res) => {
     const bodyImageSnapshot = await uploadBytesResumable(bodyImageRef, bodyImageFile.buffer, bodyImageMetadata);
     const bodyImageURL = await getDownloadURL(bodyImageSnapshot.ref);
 
-    const { email, fullname, password, data_user, role_id,address,latitude,longitude } = req.body;
+    const { email, fullname, password, shop_name, address } = req.body;
+    
+    const roleShop = await RoleModel.findOne({ name_role: "shop" });
 
-    if (!data_user || typeof data_user !== 'object') {
+    
+    if (!shop_name ) {
         return res.status(400).json({
-            message: "data_user object is required and must contain shop_name, star_rating, and orderCount"
-        });
-    }
-
-    const { shop_name, star_rating, order_count } = data_user;
-    if (!shop_name || !star_rating || !order_count) {
-        return res.status(400).json({
-            message: "data_user object must contain shop_name, star_rating, and orderCount"
+            message: "data_user object must contain shop_name"
         });
     }
 
@@ -303,45 +298,50 @@ const createUser = asyncHandle(async (req, res) => {
         res.status(401);
         throw new Error('User already exists!!!');
     }
-
+    console.log(email)
     const salt = await bcryp.genSalt(10);
     const hashedPassword = await bcryp.hash(password, salt);
+    if( email || fullname || password || address){
+        const openCageUrl = `https://api.opencagedata.com/geocode/v1/json?q=${encodeURIComponent(address)}&key=${process.env.API_KEY_MAP}`;
+        const response = await axios.get(openCageUrl);
+        if(response.data.results?.length>0){
+            const location = response?.data?.results[0]?.geometry;
+            const newUser = new UserModel({
+                fullname: fullname ?? '',
+                email,
+                password: hashedPassword,
+                role_id: roleShop._id,
+                address,
+                location: {
+                    type: 'Point',
+                    coordinates: [location.lng, location.lat], // Đảm bảo là longitude trước, latitude sau
+                },
+                data_user: {
+                    shop_name:shop_name,
+                    thumbnail: thumbnailURL,
+                    shop_banner: bodyImageURL,
+                }
+            });
+            await newUser.save();
+            const userWithRole = await UserModel.findById(newUser.id).populate('role_id');
 
-    const newUser = new UserModel({
-        fullname: fullname ?? '',
-        email,
-        password: hashedPassword,
-        role_id: role_id,
-        address,
-        location: {
-            type: 'Point',
-            coordinates: [longitude, latitude], // Đảm bảo là longitude trước, latitude sau
-        },
-        data_user: {
-            shop_name,
-            thumbnail: thumbnailURL,
-            shop_banner: bodyImageURL,
-            star_rating,
-            order_count: order_count
+            res.status(200).json({
+                message: "Create new user successfully",
+                data: {
+                    fullname: userWithRole.fullname,
+                    email: userWithRole.email,
+                    id: userWithRole.id,
+                    role_id: userWithRole.role_id,
+                    address:userWithRole.address,
+                    location:userWithRole.location,
+                    data_user: userWithRole.data_user,
+                    accesstoken: await getJsonWebToken(email, userWithRole.id),
+                }
+            });
         }
-    });
-
-    await newUser.save();
-    const userWithRole = await UserModel.findById(newUser.id).populate('role_id');
-
-    res.status(200).json({
-        message: "Create new user successfully",
-        data: {
-            fullname: userWithRole.fullname,
-            email: userWithRole.email,
-            id: userWithRole.id,
-            role_id: userWithRole.role_id,
-            address:userWithRole.address,
-            location:userWithRole.location,
-            data_user: userWithRole.data_user,
-            accesstoken: await getJsonWebToken(email, userWithRole.id),
-        }
-    });
+    }else{
+        res.status(400).json({ message: 'Lỗi dữ liệu', error: error.message });
+    }
 });
 
 const getShops = asyncHandle(async (req, res) => {
@@ -655,7 +655,7 @@ const updateInfo = asyncHandle(async (req, res) => {
    if (req.files) {
          // Xóa file cũ trên Firebase nếu tồn tại
          // Kiểm tra xem ảnh cũ có phải từ Firebase
-    if (user.photo.includes('firebasestorage.googleapis.com')) {
+    if (user?.photo?.includes('firebasestorage.googleapis.com')) {
         const photoPath = user.photo.split('/o/')[1].split('?')[0]; // Lấy path từ URL Firebase
         const oldPhotoRef = ref(storage, decodeURIComponent(photoPath)); // Decode %2F thành /
 
