@@ -45,6 +45,21 @@ const PaymentSchame = new mongoose.Schema({
         note:{type:String},
 
     },
+    shop_details: [{
+        id_shop: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "user",
+            required: true
+        },
+        service_fee: {
+            type: Number,
+            required: true
+        },
+        shipping_fee: {
+            type: Number,
+            required: true
+        }
+    }],
     mount_money:{
         type:Number,
         require:true
