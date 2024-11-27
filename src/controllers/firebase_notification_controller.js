@@ -10,7 +10,7 @@ const sendFirebaseNotification = asyncHandler(async (req, res) => {
 
   let recipientUserId = null;
   let recipientUser = null;
-
+  let senderId = null;
   try {
     if (notification_type === 'order_update' && !userId) {
     
@@ -29,8 +29,23 @@ const sendFirebaseNotification = asyncHandler(async (req, res) => {
       if (!product?.id_user) {
         return res.status(404).json({ message: 'Product or shop not found.', success: false });
       }
-
+      
       recipientUserId = product?.id_user;
+    } else if(notification_type === 'order_update' && userId) {
+      const payment = await PaymentModel.findById(object_type_id).populate({
+        path: 'id_cart',
+        populate: { path: 'id_product', select: 'id_user' },
+      });
+      if (!payment) {
+        return res.status(404).json({ message: 'Payment not found.', success: false });
+      }
+      const cart = payment?.id_cart[0];
+      const product = cart?.id_product;
+      if (!product?.id_user) {
+        return res.status(404).json({ message: 'Product or shop not found.', success: false });
+      }
+      senderId = product?.id_user;
+      recipientUserId = userId;
     } else {
       recipientUserId = userId;
     }
@@ -45,7 +60,7 @@ const sendFirebaseNotification = asyncHandler(async (req, res) => {
     // Tạo thông báo trong DB
     const newNotification = new Notification({
       recipient: recipientUserId,
-      sender,
+      sender : senderId ?  senderId : sender,
       notification_type,
       title,
       body,
