@@ -3,7 +3,7 @@ const ReviewModel = require('../models/review_model');
 
 const addReview = asyncHandler(async (req, res) => {
     try {
-        const { orderId, rating, comment } = req.body;
+        const { orderId, rating, comment, id_user } = req.body;
 
         if (!orderId || !rating) {
             return res.status(400).json({ message: 'Vui lòng cung cấp orderId và rating!' });
@@ -22,6 +22,7 @@ const addReview = asyncHandler(async (req, res) => {
         }
 
         const newReview = new ReviewModel({
+            id_user,
             orderId,
             images,
             videos,
@@ -39,8 +40,19 @@ const addReview = asyncHandler(async (req, res) => {
 
 const getReview = asyncHandler(async (req, res) => {
     try {
+        const { userId } = req.query;
+
         const reviews = await ReviewModel.find()
-            .populate('orderId');
+            .populate({
+                path: 'orderId',
+                populate: {
+                    path: 'id_cart',
+                    populate: {
+                        path: 'id_product',
+                        match: { id_user: userId },
+                    },
+                }
+            });
         res.status(200).json({
             message: "Lấy review thành công",
             data: reviews,

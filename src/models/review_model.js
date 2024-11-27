@@ -1,6 +1,11 @@
 const { default: mongoose } = require("mongoose");
 
 const ReviewSchema = new mongoose.Schema({
+    id_user: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "user",
+        require: true
+    },
     orderId: {
         type: mongoose.Schema.Types.ObjectId,
         ref: "payment",
