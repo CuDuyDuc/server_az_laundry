@@ -4,7 +4,7 @@ const MessageSchema = new mongoose.Schema({
     chatId: String,
     senderId: String,
     text: String,
-    isRead:{ type: Boolean, default: false } 
+    isRead:{ type: Boolean, default: true } 
 }, {
     timestamps: true
 })
