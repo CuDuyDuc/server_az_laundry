@@ -23,26 +23,26 @@ function sortObject(obj) {
 }
 
 const createPayment = asyncHandle(async (req, res) => {
-    const { id_user, paymentMethod, data_payment , id_product, full_name,number_phone,address} = req.body;
-    const { shipping_fee, discount, taxes, total, shipping_date, delivery_date,product_condition,shipping_mode,note } = data_payment;
+    const { id_user, paymentMethod, data_payment, id_product, full_name, number_phone, address } = req.body;
+    const { shipping_fee, discount, taxes, total, shipping_date, delivery_date, product_condition, shipping_mode, note } = data_payment;
     console.log(shipping_date)
     let id_cart = null;
-    const carts = await CartModel.find({ id_user: id_user,status:'Pending' }).populate('id_product');
+    const carts = await CartModel.find({ id_user: id_user, status: 'Pending' }).populate('id_product');
     if (carts.length === 0) {
         return res.status(200).json({ message: "Không tìm thấy giỏ hàng, không thể thanh toán" });
     }
     if (!id_product) {
         id_cart = carts.map(cart => cart._id);
     }
-    
+
     const amount_money = total + (shipping_fee || 0) - (discount || 0) + (taxes || 0);
 
     const payment = new PaymentModel({
         id_user,
         id_cart: id_cart,
         mount_money: amount_money,
-        id_product:id_product||null,
-        method_payment:paymentMethod,
+        id_product: id_product || null,
+        method_payment: paymentMethod,
         full_name,
         number_phone,
         address,
@@ -54,9 +54,9 @@ const createPayment = asyncHandle(async (req, res) => {
             total: total,
             shipping_date: shipping_date,
             delivery_date: delivery_date,
-            product_condition:product_condition,
-            shipping_mode:shipping_mode,
-            note:note
+            product_condition: product_condition,
+            shipping_mode: shipping_mode,
+            note: note
         }
     });
 
@@ -68,7 +68,7 @@ const createPayment = asyncHandle(async (req, res) => {
                 req.connection.remoteAddress ||
                 req.socket.remoteAddress ||
                 req.connection.socket.remoteAddress;
-            
+
             const vnpUrl = "https://sandbox.vnpayment.vn/paymentv2/vpcpay.html";
             const vnp_TmnCode = "9KDMIQHJ";
             const vnp_HashSecret = process.env.vnp_HashSecret;
@@ -98,13 +98,13 @@ const createPayment = asyncHandle(async (req, res) => {
             const paymentUrl = `${vnpUrl}?${querystring.stringify(sortedParams, { encode: false })}`;
             return res.status(200).json({ success: true, paymentUrl, orderId });
         } else {
-            if(findIdUser.status==="Pending"){
+            if (findIdUser.status === "Pending") {
                 await PaymentModel.findByIdAndUpdate(payment._id, { status: "COD" });
                 const carts = await CartModel.updateMany(
                     { id_user: findIdUser.id_user._id, status: "Pending" },
                     { $set: { status: "COD" } }
                 );
-                if(carts){
+                if (carts) {
                     return res.status(200).json({ data: payment, message: "Thanh toán thành công" });
                 }
             }
@@ -132,12 +132,12 @@ const handleVNPayReturn = asyncHandle(async (req, res) => {
         
         await PaymentModel.findByIdAndUpdate(orderId, { status: paymentStatus });
         const findIdUser = await PaymentModel.findById(orderId).populate('id_user')
-        if(findIdUser.status==="Paid"){
+        if (findIdUser.status === "Paid") {
             const carts = await CartModel.updateMany(
                 { id_user: findIdUser.id_user._id, status: "Pending" },
                 { $set: { status: "Paid" } }
             );
-            if(carts && findIdUser.status==='Paid'){
+            if (carts && findIdUser.status === 'Paid') {
                 return res.status(200).json({ success: true, message: "Thanh toán thành công" });
             }
         }
@@ -146,14 +146,19 @@ const handleVNPayReturn = asyncHandle(async (req, res) => {
         return res.status(400).json({ success: false, message: "Xác thực thất bại" });
     }
 });
+
 const getOrder = asyncHandle(async (req, res) => {
     try {
-        const orders = await PaymentModel.find()
+        const { userId } = req.query; // Nhận userId từ query params
+
+        const orders = await PaymentModel.find({ status: { $in: ["Paid", "COD"] } })
+            .sort({ createdAt: -1 })
             .populate('id_user')
             .populate({
                 path: 'id_cart',
                 populate: {
                     path: 'id_product',
+                    match: { id_user: userId },
                 },
             });
 
@@ -166,11 +171,45 @@ const getOrder = asyncHandle(async (req, res) => {
     }
 });
 
+const getOrderByIdShop = asyncHandle(async (req, res) => {
+    try {
+        const { userId } = req.query;
+
+        const orders = await PaymentModel.find({
+            status: { $in: ["Paid", "COD"] }
+        })
+            .sort({ createdAt: -1 })
+            .populate('id_user')
+            .populate({
+                path: 'id_cart',
+                populate: {
+                    path: 'id_product',
+                },
+            });
+
+        const filteredOrders = orders.filter(order =>
+            order.id_cart.some(cart =>
+                cart.id_product.id_user.toString() === userId
+            )
+        );
+
+        res.status(200).json({
+            message: "Lấy đơn hàng thành công",
+            data: filteredOrders,
+        });
+    } catch (error) {
+        res.status(400).json({
+            message: "Lỗi khi lấy đơn hàng",
+            error: error.message,
+        });
+    }
+});
 
 const getOrderById = asyncHandle(async (req, res) => {
     try {
         const { _id } = req.params;
         const order = await PaymentModel.findOne({ _id })
+            .sort({ createdAt: -1 })
             .populate('id_user')
             .populate({
                 path: 'id_cart',
@@ -180,6 +219,34 @@ const getOrderById = asyncHandle(async (req, res) => {
             });
         res.status(200).json({
             message: "Lấy thông tin đơn hàng thành công",
+            data: order,
+        });
+    } catch (error) {
+        res.status(500).json({
+            message: "Có lỗi xảy ra khi lấy thông tin đơn hàng",
+            error: error.message,
+        });
+    }
+});
+
+const getOrderByIdUser = asyncHandle(async (req, res) => {
+    try {
+        const { id_user } = req.params;
+        const order = await PaymentModel.find({
+            id_user,
+            status: { $in: ["Paid", "COD"] } // Lọc status là "Paid" hoặc "COD"
+        })
+            .sort({ createdAt: -1 })
+            .populate('id_user')
+            .populate({
+                path: 'id_cart',
+                populate: {
+                    path: 'id_product',
+                },
+            });
+
+        res.status(200).json({
+            message: "Lấy danh sách đơn hàng thành công",
             data: order,
         });
     } catch (error) {
@@ -225,9 +292,36 @@ const updateConfirmationStatus = asyncHandle(async (req, res) => {
     }
 });
 
-const getPendingOrders = asyncHandle(async (req, res) => {
+// const getPendingOrders = asyncHandle(async (req, res) => {
+//     try {
+//         const pendingOrders = await PaymentModel.find({ confirmationStatus: 'Chờ duyệt' })
+//             .populate('id_user')
+//             .populate({
+//                 path: 'id_cart',
+//                 populate: {
+//                     path: 'id_product',
+//                 },
+//             });
+
+//         res.status(200).json({
+//             message: "Lấy danh sách đơn hàng chờ duyệt thành công",
+//             data: pendingOrders,
+//         });
+//     } catch (error) {
+//         res.status(500).json({
+//             message: "Có lỗi xảy ra khi lấy danh sách đơn hàng chờ duyệt",
+//             error: error.message,
+//         });
+//     }
+// });
+
+const getOrdersByStatus = asyncHandle(async (req, res) => {
     try {
-        const pendingOrders = await PaymentModel.find({ confirmationStatus: 'Chờ duyệt' })
+        const { status, userId } = req.query; // Lấy trạng thái từ query string
+        const filter = status ? { confirmationStatus: status } : {}; // Nếu không có status, lấy tất cả
+
+        const orders = await PaymentModel.find(filter)
+            .sort({ createdAt: -1 })
             .populate('id_user')
             .populate({
                 path: 'id_cart',
@@ -236,17 +330,24 @@ const getPendingOrders = asyncHandle(async (req, res) => {
                 },
             });
 
+        const filteredOrders = orders.filter(order =>
+            order.id_cart.some(cart =>
+                cart.id_product.id_user.toString() === userId
+            )
+        );
+
         res.status(200).json({
-            message: "Lấy danh sách đơn hàng chờ duyệt thành công",
-            data: pendingOrders,
+            message: "Lấy danh sách đơn hàng thành công",
+            data: filteredOrders,
         });
     } catch (error) {
         res.status(500).json({
-            message: "Có lỗi xảy ra khi lấy danh sách đơn hàng chờ duyệt",
+            message: "Có lỗi xảy ra khi lấy danh sách đơn hàng",
             error: error.message,
         });
     }
 });
 
 
-module.exports = { createPayment, handleVNPayReturn, getOrder, getOrderById, updateConfirmationStatus, getPendingOrders };
+
+module.exports = { createPayment, handleVNPayReturn, getOrder, getOrderById, updateConfirmationStatus, getOrdersByStatus, getOrderByIdUser, getOrderByIdShop };
