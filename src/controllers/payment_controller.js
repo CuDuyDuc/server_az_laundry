@@ -181,6 +181,7 @@ const getOrderByIdShop = asyncHandle(async (req, res) => {
     try {
         const { userId } = req.query;
 
+        // Tìm đơn hàng với status là "Paid" hoặc "COD"
         const orders = await PaymentModel.find({
             status: { $in: ["Paid", "COD"] }
         })
@@ -193,11 +194,19 @@ const getOrderByIdShop = asyncHandle(async (req, res) => {
                 },
             });
 
-        const filteredOrders = orders.filter(order =>
-            order.id_cart.some(cart =>
-                cart.id_product.id_user.toString() === userId
-            )
-        );
+        // Lọc đơn hàng dựa trên userId trong id_cart
+        const filteredOrders = orders.map(order => {
+            // Lọc shop_details chỉ chứa id_shop khớp với userId
+            const filteredShopDetails = order.shop_details.filter(shopDetail =>
+                shopDetail.id_shop.toString() === userId
+            );
+
+            // Tạo bản sao của đơn hàng với shop_details đã lọc
+            return {
+                ...order.toObject(),
+                shop_details: filteredShopDetails
+            };
+        }).filter(order => order.shop_details.length > 0); // Loại bỏ các đơn hàng không có shop_details khớp
 
         res.status(200).json({
             message: "Lấy đơn hàng thành công",
@@ -210,6 +219,7 @@ const getOrderByIdShop = asyncHandle(async (req, res) => {
         });
     }
 });
+
 
 const getOrderById = asyncHandle(async (req, res) => {
     try {
@@ -243,14 +253,12 @@ const getOrderByIdUser = asyncHandle(async (req, res) => {
             status: { $in: ["Paid", "COD"] } // Lọc status là "Paid" hoặc "COD"
         })
             .sort({ createdAt: -1 })
-            .populate('id_user')
             .populate({
                 path: 'id_cart',
                 populate: {
                     path: 'id_product',
                 },
             });
-
         res.status(200).json({
             message: "Lấy danh sách đơn hàng thành công",
             data: order,
@@ -264,40 +272,57 @@ const getOrderByIdUser = asyncHandle(async (req, res) => {
 });
 
 const updateConfirmationStatus = asyncHandle(async (req, res) => {
-    const { _id, confirmationStatus } = req.body;
-
-    if (!_id || !confirmationStatus) {
+    const { _id, id_shop, confirmationStatus } = req.body;
+    if (!_id || !id_shop || !confirmationStatus) {
         return res.status(400).json({
-            message: "id and confirmationStatus are required"
+            message: "id, id_shop, and confirmationStatus are required",
         });
     }
-
     try {
-        const updatedPayment = await PaymentModel.findByIdAndUpdate(
+        // Kiểm tra xem id_shop có tồn tại trong shop_details
+        const payment = await PaymentModel.findOne({
             _id,
-            { confirmationStatus }, // Cập nhật trạng thái xác nhận
-            { new: true, runValidators: true }
-        );
+            "shop_details.id_shop": id_shop,
+        });
 
-        if (!updatedPayment) {
+        if (!payment) {
             return res.status(404).json({
-                message: "Payment not found"
+                message: "Không tìm thấy id_shop",
             });
         }
-
+        // Kiểm tra nếu status là 'Paid' thì không cho phép cập nhật thành 'Đã hủy'
+        if (payment.status === "Paid" && confirmationStatus === "Đã hủy") {
+            return res.status(400).json({
+                message: "Không thể hủy vì đã thanh toán VNPay",
+            });
+        }
+        // Cập nhật confirmationStatus cho shop_details với id_shop khớp
+        const updatedPayment = await PaymentModel.findOneAndUpdate(
+            { _id, "shop_details.id_shop": id_shop },
+            {
+                $set: {
+                    "shop_details.$.confirmationStatus": confirmationStatus,
+                },
+            },
+            { new: true, runValidators: true }
+        );
+        if (!updatedPayment) {
+            return res.status(404).json({
+                message: "cập nhật không thành công",
+            });
+        }
         res.status(200).json({
-            message: "Confirmation status updated successfully",
-            data: updatedPayment
+            message: "Cập nhật thành công",
+            data: updatedPayment,
         });
     } catch (error) {
         console.error(error);
         res.status(500).json({
-            message: "error",
-            error: error.message
+            message: "Error",
+            error: error.message,
         });
     }
 });
-
 // const getPendingOrders = asyncHandle(async (req, res) => {
 //     try {
 //         const pendingOrders = await PaymentModel.find({ confirmationStatus: 'Chờ duyệt' })
@@ -323,9 +348,12 @@ const updateConfirmationStatus = asyncHandle(async (req, res) => {
 
 const getOrdersByStatus = asyncHandle(async (req, res) => {
     try {
-        const { status, userId } = req.query; // Lấy trạng thái từ query string
-        const filter = status ? { confirmationStatus: status } : {}; // Nếu không có status, lấy tất cả
+        const { status, userId } = req.query; // Lấy trạng thái và userId từ query string
 
+        // Tạo bộ lọc confirmationStatus nếu có
+        const filter = status ? { "shop_details.confirmationStatus": status } : {};
+
+        // Lấy tất cả các đơn hàng thỏa mãn bộ lọc
         const orders = await PaymentModel.find(filter)
             .sort({ createdAt: -1 })
             .populate('id_user')
@@ -336,11 +364,20 @@ const getOrdersByStatus = asyncHandle(async (req, res) => {
                 },
             });
 
-        const filteredOrders = orders.filter(order =>
-            order.id_cart.some(cart =>
-                cart.id_product.id_user.toString() === userId
-            )
-        );
+        // Lọc các đơn hàng dựa trên userId trong id_shop
+        const filteredOrders = orders.map(order => {
+            // Lọc mảng shop_details dựa trên id_shop
+            const filteredShopDetails = order.shop_details.filter(shopDetail =>
+                shopDetail.id_shop.toString() === userId &&
+                (!status || shopDetail.confirmationStatus === status) // Lọc thêm theo status nếu có
+            );
+
+            // Trả lại đơn hàng chỉ với shop_details đã lọc
+            return {
+                ...order.toObject(),
+                shop_details: filteredShopDetails
+            };
+        }).filter(order => order.shop_details.length > 0); // Loại bỏ đơn hàng không có shop_details phù hợp
 
         res.status(200).json({
             message: "Lấy danh sách đơn hàng thành công",
