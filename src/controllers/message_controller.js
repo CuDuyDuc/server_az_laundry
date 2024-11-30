@@ -1,5 +1,6 @@
 const asyncHandle = require("express-async-handler");
 const MessageModel = require("../models/message_model");
+const ChatModel = require("../models/chat_model");
 
 const createMessage = asyncHandle(async (req, res) => {
     const {chatId, senderId, text} = req.body
@@ -71,18 +72,39 @@ const markMessagesAsReadByChatId = asyncHandle(async (req, res) => {
     }
 });
 
-const countMessageNotification = asyncHandle(async (req, res) => {
-    const { chatId, userId } = req.params;
+const countMessageNotifications = asyncHandle(async (req, res) => {
+    const { chatIds } = req.body; // Truyền mảng các chatId từ client qua body.
+    console.log(chatIds);
+
     try {
-        const countIsReadTrue = await MessageModel.countDocuments({
-            chatId: chatId,
-            isRead: true,
-            senderId: { $ne: userId }, // Điều kiện: senderId khác userId
-        });
-        res.status(200).json({
-            chatId,
-            isReadTrueCount: countIsReadTrue,
-        });
+        const result = await Promise.all(
+            chatIds.map(async (chatId) => {
+                // Lấy thông tin chi tiết chatId từ cơ sở dữ liệu nếu cần
+                const chatDetails = await ChatModel.findById(chatId._id);
+
+                // Đếm số lượng tin nhắn đã đọc theo senderId
+                const senderCounts = await Promise.all(
+                    chatDetails.members.map(async (memberId) => {
+                        const countIsReadTrue = await MessageModel.countDocuments({
+                            chatId: chatId._id,
+                            isRead: true,
+                            senderId: memberId, // Đếm số lượng tin nhắn đọc của từng senderId
+                        });
+                        return {
+                            senderId: memberId,
+                            isReadTrueCount: countIsReadTrue,
+                        };
+                    })
+                );
+
+                return {
+                    ...chatDetails.toObject(), // Bao gồm các trường của chatId
+                    senderCounts, // Thêm mảng senderCounts vào kết quả
+                };
+            })
+        );
+
+        res.status(200).json(result);
     } catch (error) {
         console.error("Error counting messages:", error);
         res.status(500).json({ message: "Lỗi khi đếm thông báo", error });
@@ -109,4 +131,4 @@ const updateIsReadToFalse = asyncHandle(async (req, res) => {
         });
     }
 });
-module.exports = {createMessage, getMessage, updateMessageReadStatus, markMessagesAsReadByChatId,countMessageNotification,updateIsReadToFalse}
+module.exports = {createMessage, getMessage, updateMessageReadStatus, markMessagesAsReadByChatId,countMessageNotifications,updateIsReadToFalse}

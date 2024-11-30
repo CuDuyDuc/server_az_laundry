@@ -58,6 +58,11 @@ const PaymentSchame = new mongoose.Schema({
         shipping_fee: {
             type: Number,
             required: true
+        },
+        confirmationStatus: {  
+            type: String,
+            enum: ['Chờ duyệt', 'Đang giặt', 'Đang giao', 'Hoàn thành', 'Đã hủy'],
+            default: 'Chờ duyệt'
         }
     }],
     mount_money:{
@@ -69,11 +74,7 @@ const PaymentSchame = new mongoose.Schema({
         enum: ['Pending', 'Paid', 'Failed',"COD"],
         default: 'Pending'
     },
-    confirmationStatus: {  
-        type: String,
-        enum: ['Chờ duyệt', 'Đang giặt', 'Đang giao', 'Hoàn thành', 'Đã hủy'],
-        default: 'Chờ duyệt'
-    }
+    
 },{timestamps: true})
 
 const PaymentModel = mongoose.model('payment', PaymentSchame);
