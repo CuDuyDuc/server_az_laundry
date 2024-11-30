@@ -3,20 +3,53 @@ const MessageModel = require("../models/message_model");
 const ChatModel = require("../models/chat_model");
 
 const createMessage = asyncHandle(async (req, res) => {
-    const {chatId, senderId, text} = req.body
-    const message = new MessageModel({
-        chatId,
-        senderId, 
-        text
-    })
+    const { chatId, senderId, text } = req.body;
+  
     try {
-        const response = await message.save()
-        res.status(200).json(response)
+      // Tạo tin nhắn mới
+      const message = new MessageModel({
+        chatId,
+        senderId,
+        text,
+      });
+  
+      // Lưu tin nhắn vào cơ sở dữ liệu
+      const response = await message.save();
+  
+      // Cập nhật senderCounts trong chat
+      const chat = await ChatModel.findById(chatId);
+  
+      if (!chat) {
+        return res.status(404).json({ message: "Chat không tồn tại" });
+      }
+  
+      // Kiểm tra xem senderId đã có trong senderCounts chưa
+      const senderIndex = chat.senderCounts.findIndex(
+        (item) => item.senderId === senderId
+      );
+  
+      if (senderIndex !== -1) {
+        // Nếu senderId đã có, tăng countIsRead lên 1
+        chat.senderCounts[senderIndex].countIsRead += 1;
+      } else {
+        // Nếu chưa có, thêm mới vào senderCounts
+        chat.senderCounts.push({
+          senderId,
+          countIsRead: 1,
+        });
+      }
+  
+      // Lưu lại chat với senderCounts đã được cập nhật
+      await chat.save();
+  
+      // Trả về response của tin nhắn mới
+      res.status(200).json(response);
     } catch (error) {
-        console.log(error)
-        res.status(500).json(error)
+      console.log(error);
+      res.status(500).json({ message: "Có lỗi xảy ra khi tạo tin nhắn" });
     }
-});
+  });
+  
 
 const getMessage = asyncHandle(async(req, res) => {
     const {chatId} = req.params
