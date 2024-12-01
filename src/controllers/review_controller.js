@@ -1,5 +1,10 @@
 const asyncHandler = require('express-async-handler');
+const { getDownloadURL, getStorage, ref, uploadBytesResumable } = require('firebase/storage');
 const ReviewModel = require('../models/review_model');
+const storage = getStorage(undefined, "gs://az-laundry.appspot.com");
+const { initializeApp } = require("firebase/app");
+const firebaseConfig = require("../configs/firebase.config");
+initializeApp(firebaseConfig)
 
 const addReview = asyncHandler(async (req, res) => {
     try {
@@ -11,14 +16,22 @@ const addReview = asyncHandler(async (req, res) => {
 
         const images = [];
         const videos = [];
-        if (req.files) {
-            req.files.forEach(file => {
+
+        if (req.files && req.files.length > 0) {
+            for (const file of req.files) {
+                const folder = file.mimetype.startsWith('image/') ? 'images/' : 'videos/';
+                const storageRef = ref(storage, `${folder}${file.originalname}`);
+                const metadata = { contentType: file.mimetype };
+
+                const snapshot = await uploadBytesResumable(storageRef, file.buffer, metadata);
+                const downloadURL = await getDownloadURL(snapshot.ref);
+
                 if (file.mimetype.startsWith('image/')) {
-                    images.push(`/uploads/${file.filename}`);
+                    images.push(downloadURL);
                 } else if (file.mimetype.startsWith('video/')) {
-                    videos.push(`/uploads/${file.filename}`);
+                    videos.push(downloadURL);
                 }
-            });
+            }
         }
 
         const newReview = new ReviewModel({
@@ -32,9 +45,15 @@ const addReview = asyncHandler(async (req, res) => {
 
         await newReview.save();
 
-        res.status(200).json({ message: 'Đánh giá đã được thêm thành công!', review: newReview });
+        res.status(200).json({ 
+            message: 'Đánh giá đã được thêm thành công!', 
+            review: newReview 
+        });
     } catch (error) {
-        res.status(500).json({ message: 'Có lỗi xảy ra khi thêm đánh giá!', error: error.message });
+        res.status(500).json({ 
+            message: 'Có lỗi xảy ra khi thêm đánh giá!', 
+            error: error.message 
+        });
     }
 });
 
