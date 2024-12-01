@@ -258,7 +258,7 @@ const getOrderByIdUser = asyncHandle(async (req, res) => {
                 populate: {
                     path: 'id_product',
                 },
-            });
+            })
         res.status(200).json({
             message: "Lấy danh sách đơn hàng thành công",
             data: order,
