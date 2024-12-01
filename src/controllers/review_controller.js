@@ -8,7 +8,7 @@ initializeApp(firebaseConfig)
 
 const addReview = asyncHandler(async (req, res) => {
     try {
-        const { orderId, rating, comment, id_user } = req.body;
+        const { orderId, rating, comment, id_user, id_shop } = req.body;
 
         if (!orderId || !rating) {
             return res.status(400).json({ message: 'Vui lòng cung cấp orderId và rating!' });
@@ -36,6 +36,7 @@ const addReview = asyncHandler(async (req, res) => {
 
         const newReview = new ReviewModel({
             id_user,
+            id_shop,
             orderId,
             images,
             videos,
@@ -45,14 +46,14 @@ const addReview = asyncHandler(async (req, res) => {
 
         await newReview.save();
 
-        res.status(200).json({ 
-            message: 'Đánh giá đã được thêm thành công!', 
-            review: newReview 
+        res.status(200).json({
+            message: 'Đánh giá đã được thêm thành công!',
+            review: newReview
         });
     } catch (error) {
-        res.status(500).json({ 
-            message: 'Có lỗi xảy ra khi thêm đánh giá!', 
-            error: error.message 
+        res.status(500).json({
+            message: 'Có lỗi xảy ra khi thêm đánh giá!',
+            error: error.message
         });
     }
 });
@@ -98,4 +99,22 @@ const getReviewById = asyncHandler(async (req, res) => {
     }
 });
 
-module.exports = { addReview, getReview, getReviewById };
+const getReviewByIdShop = asyncHandler(async (req, res) => {
+    try {
+        const { id_shop } = req.params;
+        const review = await ReviewModel.find({ id_shop })
+            .sort({ createdAt: -1 })
+            .populate('id_user')
+        res.status(200).json({
+            message: "Lấy review thành công",
+            data: review,
+        });
+    } catch (error) {
+        res.status(500).json({
+            message: "Có lỗi xảy ra khi lấy review",
+            error: error.message,
+        });
+    }
+});
+
+module.exports = { addReview, getReview, getReviewById, getReviewByIdShop };
