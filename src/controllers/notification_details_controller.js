@@ -5,7 +5,6 @@ const { default: mongoose } = require("mongoose");
 const getNotificationsByUserId = asyncHandler(async (req, res) => {
   const { userId } = req.query;
 
-  // Tìm tất cả thông báo dựa trên userId
   const notifications = await Notification.find({ recipient: new mongoose.Types.ObjectId(userId) })
   .sort({ createdAt: -1 });
 
@@ -15,7 +14,6 @@ const getNotificationsByUserId = asyncHandler(async (req, res) => {
     });
   }
 
-  // Trả về danh sách các thông báo
   res.json({
     status: 200,
     message: 'Danh sách thông báo',
@@ -25,7 +23,6 @@ const getNotificationsByUserId = asyncHandler(async (req, res) => {
 const deleteNotificationById = asyncHandler(async (req, res) => {
   const { notificationId } = req.body;
 
-  // Xóa thông báo theo ID
   const deletedNotification = await Notification.findByIdAndDelete(notificationId);
 
   if (!deletedNotification) {
@@ -44,7 +41,6 @@ const deleteNotificationById = asyncHandler(async (req, res) => {
 const getUnreadNotificationCount = asyncHandler(async (req, res) => {
   const { userId } = req.query;
 
-  // Đếm số lượng thông báo chưa đọc cho user
   const unreadCount = await Notification.countDocuments({
     recipient: new mongoose.Types.ObjectId(userId),
     status: 'unread',
@@ -61,7 +57,6 @@ const getUnreadNotificationCount = asyncHandler(async (req, res) => {
 const markNotificationAsRead = asyncHandler(async (req, res) => {
   const { notificationId } = req.body;
 
-  // Tìm và cập nhật trạng thái thông báo thành "read" dựa trên notificationId
   const updatedNotification = await Notification.findByIdAndUpdate(
     notificationId,
     { status: 'read' },
