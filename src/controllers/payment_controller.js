@@ -79,7 +79,7 @@ const createPayment = asyncHandle(async (req, res) => {
             const vnpUrl = "https://sandbox.vnpayment.vn/paymentv2/vpcpay.html";
             const vnp_TmnCode = "9KDMIQHJ";
             const vnp_HashSecret = process.env.vnp_HashSecret;
-            const vnp_ReturnUrl = `http://${process.env.IP_Address}:3000/api/payment/vnpay_return`;
+            const vnp_ReturnUrl = `${process.env.IP_Address}/api/payment/vnpay_return`;
             const orderId = payment._id.toString();
             const createDate = moment().format('YYYYMMDDHHmmss');
             const vnp_Params = {
