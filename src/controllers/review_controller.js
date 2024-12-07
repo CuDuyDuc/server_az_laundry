@@ -4,6 +4,7 @@ const ReviewModel = require('../models/review_model');
 const storage = getStorage(undefined, "gs://az-laundry.appspot.com");
 const { initializeApp } = require("firebase/app");
 const firebaseConfig = require("../configs/firebase.config");
+const UserModel = require('../models/user_model');
 initializeApp(firebaseConfig)
 
 const addReview = asyncHandler(async (req, res) => {
@@ -45,7 +46,21 @@ const addReview = asyncHandler(async (req, res) => {
         });
 
         await newReview.save();
+        const ratings = await ReviewModel.aggregate([
+            { $match: { id_shop: id_shop } }, // Lọc theo id_shop
+            { $group: { _id: "$id_shop", averageRating: { $avg: "$rating" } } }, // Tính trung bình rating
+        ]);
 
+        if (ratings.length > 0) {
+            const averageRating = ratings[0].averageRating;
+
+            // Cập nhật lại star_rating trong UserModel
+            await UserModel.findByIdAndUpdate(
+                id_shop,
+                { "data_user.star_rating": Math.round(averageRating * 10) / 10 }, // Làm tròn 1 chữ số thập phân
+                { new: true }
+            );
+        }
         res.status(200).json({
             message: 'Đánh giá đã được thêm thành công!',
             review: newReview
@@ -116,5 +131,32 @@ const getReviewByIdShop = asyncHandler(async (req, res) => {
         });
     }
 });
+const updateShopStarRatings = async () => {
+    try {
+        const ratings = await ReviewModel.aggregate([
+            {
+                $group: {
+                    _id: "$id_shop", // Nhóm theo id_shop
+                    averageRating: { $avg: "$rating" }, // Tính trung bình rating
+                },
+            },
+        ]);
 
-module.exports = { addReview, getReview, getReviewById, getReviewByIdShop };
+        const updatePromises = ratings.map(async (rating) => {
+            // Làm tròn giá trị trung bình rating lên 1 chữ số thập phân
+            const roundedRating = Math.round(rating.averageRating * 10) / 10;
+
+            return UserModel.findByIdAndUpdate(
+                rating._id, // _id trong aggregate là id_shop
+                { "data_user.star_rating": roundedRating || 0 }, // Gán giá trị trung bình đã làm tròn
+                { new: true } // Trả về document đã được cập nhật
+            );
+        });
+
+        await Promise.all(updatePromises);
+        console.log('Star ratings updated successfully!');
+    } catch (error) {
+        console.error('Error updating star ratings:', error);
+    }
+};
+module.exports = { addReview, getReview, getReviewById, getReviewByIdShop,updateShopStarRatings };
