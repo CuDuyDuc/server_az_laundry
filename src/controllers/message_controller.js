@@ -1,48 +1,51 @@
 const asyncHandle = require("express-async-handler");
 const MessageModel = require("../models/message_model");
 const ChatModel = require("../models/chat_model");
-
+const { initializeApp } = require("firebase/app");
+const { getDownloadURL, getStorage, ref, uploadBytesResumable } = require('firebase/storage');
+const firebaseConfig = require("../configs/firebase.config");
+initializeApp(firebaseConfig)
+const storage = getStorage(undefined,"gs://az-laundry.appspot.com")
 const createMessage = asyncHandle(async (req, res) => {
+    let downloadURL 
+    if(req.file){
+        const file = req.file;
+        const storageRef = ref(storage, `messages/${file.originalname}`);
+        const metadata = {
+            contentType: file.mimetype,
+        };
+        const snapshot = await uploadBytesResumable(storageRef, file.buffer, metadata);
+        downloadURL = await getDownloadURL(snapshot.ref);
+    }
     const { chatId, senderId, text } = req.body;
-  
     try {
-      // Tạo tin nhắn mới
-      const message = new MessageModel({
-        chatId,
-        senderId,
-        text,
-      });
-  
-      // Lưu tin nhắn vào cơ sở dữ liệu
-      const response = await message.save();
-  
-      // Cập nhật senderCounts trong chat
-      const chat = await ChatModel.findById(chatId);
-  
+        const message =  new MessageModel({
+            chatId,
+            senderId,
+            text:downloadURL?downloadURL:text,
+        });
+        console.log(chatId);
+        console.log(downloadURL);
+        
+        const response = await message.save();
+        const chat = await ChatModel.findById(chatId);
       if (!chat) {
         return res.status(404).json({ message: "Chat không tồn tại" });
       }
-  
-      // Kiểm tra xem senderId đã có trong senderCounts chưa
       const senderIndex = chat.senderCounts.findIndex(
         (item) => item.senderId === senderId
       );
-  
       if (senderIndex !== -1) {
         // Nếu senderId đã có, tăng countIsRead lên 1
         chat.senderCounts[senderIndex].countIsRead += 1;
       } else {
-        // Nếu chưa có, thêm mới vào senderCounts
         chat.senderCounts.push({
           senderId,
           countIsRead: 1,
         });
       }
   
-      // Lưu lại chat với senderCounts đã được cập nhật
       await chat.save();
-  
-      // Trả về response của tin nhắn mới
       res.status(200).json(response);
     } catch (error) {
       console.log(error);
