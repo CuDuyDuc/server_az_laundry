@@ -672,15 +672,19 @@ const updateInfo = asyncHandle(async (req, res) => {
         console.log("Old photo is not stored in Firebase, skipping delete.");
     }
     const file = req.files[0]; // Hình ảnh từ request
+    console.log('dòng 675' , file);
+    
     const storageRef = ref(storage, `users/${userId}_${file.originalname}`); // Định danh file theo userId
     const metadata = { contentType: file.mimetype };
 
     try {
         const snapshot = await uploadBytesResumable(storageRef, file.buffer, metadata); // Upload lên Firebase
         const downloadURL = await getDownloadURL(snapshot.ref); // Lấy URL tải xuống
-    console.log("Download URL:", downloadURL);
+        console.log("Download URL:", downloadURL);
         updateData.photo = downloadURL; // Lưu URL vào database
     } catch (error) {
+        console.log('Error upload line 686', error);
+        
         return res.status(500).json({ message: "Error uploading image", error });
     }
     }
